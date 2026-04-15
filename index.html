@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard – Histogram Czasów Realizacji (Dni)</title>
+  <title>Dashboard – Analiza Czasów Realizacji</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,8 +28,42 @@
       text-align: center;
       font-size: 0.85rem;
       color: #8b949e;
-      margin-bottom: 28px;
+      margin-bottom: 20px;
     }
+
+    /* ── Tabs ────────────────────────────────────────── */
+    .tabs-nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 28px;
+      border-bottom: 1px solid #30363d;
+      padding-bottom: 0;
+    }
+    .tab-btn {
+      background: none;
+      border: 1px solid transparent;
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      color: #8b949e;
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 9px 22px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      position: relative;
+      bottom: -1px;
+    }
+    .tab-btn:hover { background: #161b22; color: #c9d1d9; }
+    .tab-btn.active {
+      background: #0d1117;
+      border-color: #30363d;
+      border-bottom-color: #0d1117;
+      color: #58a6ff;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Common ──────────────────────────────────────── */
     .cards-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -89,8 +124,9 @@
       border: 1px solid #30363d;
       border-radius: 12px;
       padding: 20px 24px 16px;
+      margin-bottom: 28px;
     }
-    .chart-container canvas { max-height: 420px; }
+    .chart-container canvas { max-height: 480px; }
     .chart-title {
       font-size: 0.95rem;
       font-weight: 600;
@@ -111,8 +147,10 @@
       font-size: 0.8rem;
       color: #c9d1d9;
     }
-    .legend-dot  { width:12px; height:12px; border-radius:3px; }
-    .legend-dash { width:22px; height:2px; border-top:2px dashed; }
+    .legend-dot  { width: 12px; height: 12px; border-radius: 3px; }
+    .legend-dot-circle { width: 12px; height: 12px; border-radius: 50%; }
+    .legend-dash { width: 22px; height: 2px; border-top: 2px dashed; }
+    .legend-line { width: 22px; height: 2px; border-top: 2px solid; }
     .form-container {
       background: #161b22;
       border: 1px solid #30363d;
@@ -154,9 +192,8 @@
       min-width: 120px;
       transition: border-color 0.15s;
     }
-    .form-group input:focus, .form-group select:focus {
-      border-color: #58a6ff;
-    }
+    .form-group input[type="date"] { color-scheme: dark; }
+    .form-group input:focus, .form-group select:focus { border-color: #58a6ff; }
     .form-group select option { background: #161b22; }
     .btn-add {
       background: #238636;
@@ -178,8 +215,8 @@
       display: none;
       align-self: flex-end;
     }
-    .form-msg.ok  { display:block; background:#12261e; color:#39d353; border:1px solid #39d35344; }
-    .form-msg.err { display:block; background:#2a1010; color:#f78166; border:1px solid #f7816644; }
+    .form-msg.ok  { display: block; background: #12261e; color: #39d353; border: 1px solid #39d35344; }
+    .form-msg.err { display: block; background: #2a1010; color: #f78166; border: 1px solid #f7816644; }
     .btn-toggle {
       margin-left: auto;
       background: none;
@@ -238,11 +275,20 @@
       color: #c9d1d9;
     }
     .modal-item-info { display: flex; align-items: center; gap: 8px; }
-    .modal-item-idx {
-      font-size: 0.7rem;
-      color: #8b949e;
-      min-width: 24px;
+    .modal-item-idx { font-size: 0.7rem; color: #8b949e; min-width: 24px; }
+    .modal-entry {
+      background: #21262d;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+      font-size: 0.88rem;
+      color: #c9d1d9;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
+    .modal-entry-info { display: flex; flex-direction: column; gap: 2px; }
+    .modal-entry-detail { font-size: 0.75rem; color: #8b949e; }
     .btn-delete {
       background: #3d1a1a;
       border: 1px solid #f7816644;
@@ -280,53 +326,172 @@
       text-align: right;
       margin-top: 8px;
     }
+
+    /* ── Scatter: overall summary bar ───────────────── */
+    .summary-bar {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 28px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+    .summary-bar .sum-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #c9d1d9;
+      margin-right: 4px;
+    }
+    .sum-badge {
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 8px 14px;
+      text-align: center;
+      min-width: 90px;
+    }
+    .sum-badge .slabel {
+      font-size: 0.67rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #8b949e;
+      margin-bottom: 3px;
+    }
+    .sum-badge .svalue { font-size: 1.15rem; font-weight: 700; color: #e6edf3; }
+    .sum-badge .sunit  { font-size: 0.7rem; opacity: 0.55; margin-left: 2px; }
+    .sum-badge.p50 { border-color: #c9d1d944; }
+    .sum-badge.p50 .svalue { color: #c9d1d9; }
+    .sum-badge.p85 { border-color: #d2a87944; }
+    .sum-badge.p85 .svalue { color: #d2a879; }
+    .sum-badge.p95 { border-color: #f7816644; }
+    .sum-badge.p95 .svalue { color: #f78166; }
   </style>
 </head>
 <body>
 
-<h1>📊 Histogram Czasów Realizacji</h1>
+<h1>📊 Dashboard Czasów Realizacji</h1>
 <p class="subtitle">Analiza czasów realizacji według rozmiaru zamówienia</p>
 
-<div class="form-container">
-  <legend>➕ Dodaj nowy wpis</legend>
-  <div class="form-group">
-    <label for="inp-size">Rozmiar</label>
-    <select id="inp-size">
-      <option value="S">S – Small</option>
-      <option value="M">M – Medium</option>
-      <option value="L">L – Large</option>
-    </select>
-  </div>
-  <div class="form-group">
-    <label for="inp-time">Czas realizacji (dni)</label>
-    <input id="inp-time" type="number" min="0" step="0.1" placeholder="np. 3.5" />
-  </div>
-  <button class="btn-add" id="btn-add">Dodaj</button>
-  <span class="form-msg" id="form-msg"></span>
+<!-- Tab navigation -->
+<div class="tabs-nav">
+  <button class="tab-btn active" data-tab="histogram">📊 Histogram</button>
+  <button class="tab-btn" data-tab="scatter">📈 Scatterplot</button>
 </div>
 
-<div class="cards-grid" id="cards"></div>
+<!-- ═══════════════ HISTOGRAM TAB ═══════════════ -->
+<div class="tab-content active" id="tab-histogram">
 
-<div class="chart-container">
-  <div class="chart-title">Rozkład czasów realizacji (dni) — podział na rozmiar</div>
-  <canvas id="histChart"></canvas>
-  <div class="legend" id="legend"></div>
-  <div class="chart-hint">💡 Kliknij na słupek, aby zobaczyć wpisy i usunąć wybrany</div>
-</div>
-
-<!-- Modal – delete entry -->
-<div class="modal-overlay" id="modal-overlay">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div class="modal-title" id="modal-title"></div>
-    <div class="modal-subtitle" id="modal-subtitle"></div>
-    <ul class="modal-list" id="modal-list"></ul>
-    <div class="modal-empty" id="modal-empty" style="display:none">Brak wpisów w tym przedziale.</div>
-    <button class="modal-close" id="modal-close">Zamknij</button>
+  <div class="form-container">
+    <legend>➕ Dodaj nowy wpis</legend>
+    <div class="form-group">
+      <label for="h-inp-size">Rozmiar</label>
+      <select id="h-inp-size">
+        <option value="S">S – Small</option>
+        <option value="M">M – Medium</option>
+        <option value="L">L – Large</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="h-inp-time">Czas realizacji (dni)</label>
+      <input id="h-inp-time" type="number" min="0" step="0.1" placeholder="np. 3.5" />
+    </div>
+    <button class="btn-add" id="h-btn-add">Dodaj</button>
+    <span class="form-msg" id="h-form-msg"></span>
   </div>
-</div>
+
+  <div class="cards-grid" id="h-cards"></div>
+
+  <div class="chart-container">
+    <div class="chart-title">Rozkład czasów realizacji (dni) — podział na rozmiar</div>
+    <canvas id="histChart"></canvas>
+    <div class="legend" id="h-legend"></div>
+    <div class="chart-hint">💡 Kliknij na słupek, aby zobaczyć wpisy i usunąć wybrany</div>
+  </div>
+
+  <!-- Modal – histogram -->
+  <div class="modal-overlay" id="h-modal-overlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="h-modal-title">
+      <div class="modal-title" id="h-modal-title"></div>
+      <div class="modal-subtitle" id="h-modal-subtitle"></div>
+      <ul class="modal-list" id="h-modal-list"></ul>
+      <div class="modal-empty" id="h-modal-empty" style="display:none">Brak wpisów w tym przedziale.</div>
+      <button class="modal-close" id="h-modal-close">Zamknij</button>
+    </div>
+  </div>
+
+</div><!-- /tab-histogram -->
+
+<!-- ═══════════════ SCATTER TAB ═══════════════ -->
+<div class="tab-content" id="tab-scatter">
+
+  <div class="form-container">
+    <legend>➕ Dodaj nowy wpis</legend>
+    <div class="form-group">
+      <label for="s-inp-date">Data ukończenia</label>
+      <input id="s-inp-date" type="date" />
+    </div>
+    <div class="form-group">
+      <label for="s-inp-size">Rozmiar</label>
+      <select id="s-inp-size">
+        <option value="S">S – Small</option>
+        <option value="M">M – Medium</option>
+        <option value="L">L – Large</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="s-inp-time">Czas realizacji (dni)</label>
+      <input id="s-inp-time" type="number" min="0" step="1" placeholder="np. 45" />
+    </div>
+    <button class="btn-add" id="s-btn-add">Dodaj</button>
+    <span class="form-msg" id="s-form-msg"></span>
+  </div>
+
+  <div class="cards-grid" id="s-cards"></div>
+
+  <div class="summary-bar" id="s-summary-bar"></div>
+
+  <div class="chart-container">
+    <div class="chart-title">Czasy realizacji w czasie — podział na rozmiar zamówienia</div>
+    <canvas id="scatterChart"></canvas>
+    <div class="legend" id="s-legend"></div>
+    <div class="chart-hint">💡 Kliknij na punkt, aby zobaczyć szczegóły i usunąć wpis</div>
+  </div>
+
+  <!-- Modal – scatter -->
+  <div class="modal-overlay" id="s-modal-overlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="s-modal-title">
+      <div class="modal-title" id="s-modal-title"></div>
+      <div class="modal-subtitle" id="s-modal-subtitle"></div>
+      <div id="s-modal-body"></div>
+      <button class="modal-close" id="s-modal-close">Zamknij</button>
+    </div>
+  </div>
+
+</div><!-- /tab-scatter -->
 
 <script>
-let RAW = [
+// ─────────────────────────────────────────────────
+// Tab switching
+// ─────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    // Lazy-init scatter chart when first shown
+    if (btn.dataset.tab === 'scatter' && !scatterChartInstance) renderScatter();
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// HISTOGRAM
+// ═══════════════════════════════════════════════════
+let HIST_RAW = [
   {size:'S',time:49},{size:'S',time:48},{size:'S',time:87},
   {size:'M',time:57},{size:'M',time:148},{size:'S',time:53},
   {size:'S',time:45},{size:'M',time:145},{size:'L',time:105},
@@ -342,55 +507,59 @@ let RAW = [
 ];
 
 const SIZES = {
-  S:{ label:'S \u2013 Small',  icon:'\u26A1', color:'#39d353', bgAlpha:'55' },
-  M:{ label:'M \u2013 Medium', icon:'\uD83D\uDCE6', color:'#58a6ff', bgAlpha:'55' },
-  L:{ label:'L \u2013 Large',  icon:'\uD83C\uDFD7\uFE0F', color:'#f78166', bgAlpha:'55' },
+  S: { label: 'S \u2013 Small',  icon: '\u26A1',             color: '#39d353', bgAlpha: '55' },
+  M: { label: 'M \u2013 Medium', icon: '\uD83D\uDCE6',       color: '#58a6ff', bgAlpha: '55' },
+  L: { label: 'L \u2013 Large',  icon: '\uD83C\uDFD7\uFE0F', color: '#f78166', bgAlpha: '55' },
 };
 
-const hiddenSizes = new Set();
-
-function pct(arr, p) {
-  const s = [...arr].sort((a,b)=>a-b);
-  const idx = p/100*(s.length-1);
-  const lo=Math.floor(idx), hi=Math.ceil(idx);
-  return parseFloat((s[lo]+(idx-lo)*(s[hi]-s[lo])).toFixed(1));
-}
-
-let chartInstance = null;
+const histHiddenSizes = new Set();
+let histChartInstance = null;
 let currentBins = [];
 
-function renderAll() {
+function pct(arr, p) {
+  if (!arr.length) return 0;
+  const s = [...arr].sort((a, b) => a - b);
+  const idx = p / 100 * (s.length - 1);
+  const lo = Math.floor(idx), hi = Math.ceil(idx);
+  return parseFloat((s[lo] + (idx - lo) * (s[hi] - s[lo])).toFixed(1));
+}
+
+function renderHistogram() {
   const grouped = {};
-  RAW.forEach(({size,time})=>{ if(!grouped[size]) grouped[size]=[]; grouped[size].push(time); });
-  ['S','M','L'].forEach(s=>{ if(!grouped[s]) grouped[s]=[]; });
+  HIST_RAW.forEach(({ size, time }) => {
+    if (!grouped[size]) grouped[size] = [];
+    grouped[size].push(time);
+  });
+  ['S', 'M', 'L'].forEach(s => { if (!grouped[s]) grouped[s] = []; });
 
   const stats = {};
-  Object.entries(grouped).forEach(([s,times])=>{
-    stats[s]={ times, count:times.length,
-      p50: times.length ? pct(times,50) : 0,
-      p85: times.length ? pct(times,85) : 0,
-      p95: times.length ? pct(times,95) : 0,
+  Object.entries(grouped).forEach(([s, times]) => {
+    stats[s] = {
+      times,
+      count: times.length,
+      p50: pct(times, 50),
+      p85: pct(times, 85),
+      p95: pct(times, 95),
     };
   });
 
-  const allTimes = RAW.map(r=>r.time);
+  const allTimes = HIST_RAW.map(r => r.time);
   const BIN_WIDTH = 50;
   const maxTime = allTimes.length ? Math.max(...allTimes) : 450;
   const MAX_TIME = Math.ceil((maxTime + BIN_WIDTH) / BIN_WIDTH) * BIN_WIDTH;
   const bins = [];
-  for(let lo=0; lo<MAX_TIME; lo+=BIN_WIDTH)
-    bins.push({lo, hi:lo+BIN_WIDTH, label:`${lo}\u2013${lo+BIN_WIDTH}`});
+  for (let lo = 0; lo < MAX_TIME; lo += BIN_WIDTH)
+    bins.push({ lo, hi: lo + BIN_WIDTH, label: `${lo}\u2013${lo + BIN_WIDTH}` });
   currentBins = bins;
 
-  function countBin(times,lo,hi){ return times.filter(t=>t>=lo&&t<hi).length; }
+  function countBin(times, lo, hi) { return times.filter(t => t >= lo && t < hi).length; }
 
   // Stat cards
-  const cardsEl = document.getElementById('cards');
+  const cardsEl = document.getElementById('h-cards');
   cardsEl.innerHTML = '';
-  ['S','M','L'].forEach(s=>{
-    const cfg=SIZES[s], st=stats[s], cls=`size-${s.toLowerCase()}`;
-    const isHidden = hiddenSizes.has(s);
-    const toggleLabel = isHidden ? '👁 Pokaż' : '🙈 Ukryj';
+  ['S', 'M', 'L'].forEach(s => {
+    const cfg = SIZES[s], st = stats[s], cls = `size-${s.toLowerCase()}`;
+    const isHidden = histHiddenSizes.has(s);
     const cardDiv = document.createElement('div');
     cardDiv.className = `card ${cls}${isHidden ? ' hidden-category' : ''}`;
     cardDiv.innerHTML = `
@@ -398,7 +567,7 @@ function renderAll() {
         <span class="card-icon">${cfg.icon}</span>
         <span class="card-title">${cfg.label}</span>
         <span class="card-count">${st.count} zam&oacute;wie&#324;</span>
-        <button class="btn-toggle" data-size="${s}" title="${isHidden ? 'Pokaż kategorię na wykresie' : 'Ukryj kategorię na wykresie'}">${toggleLabel}</button>
+        <button class="btn-toggle" data-size="${s}" title="${isHidden ? 'Pokaż kategorię na wykresie' : 'Ukryj kategorię na wykresie'}">${isHidden ? '👁 Pokaż' : '🙈 Ukryj'}</button>
       </div>
       <div class="percentiles">
         <div class="pct-badge"><div class="label">P50</div><div class="value">${st.p50}<span class="unit">dni</span></div></div>
@@ -406,110 +575,108 @@ function renderAll() {
         <div class="pct-badge"><div class="label">P95</div><div class="value">${st.p95}<span class="unit">dni</span></div></div>
       </div>`;
     cardsEl.appendChild(cardDiv);
-    cardDiv.querySelector('.btn-toggle').addEventListener('click', ()=>{
-      if(hiddenSizes.has(s)) hiddenSizes.delete(s);
-      else hiddenSizes.add(s);
-      renderAll();
+    cardDiv.querySelector('.btn-toggle').addEventListener('click', () => {
+      if (histHiddenSizes.has(s)) histHiddenSizes.delete(s);
+      else histHiddenSizes.add(s);
+      renderHistogram();
     });
   });
 
-  // Chart datasets – skip hidden sizes
-  const datasets = ['S','M','L'].map(s=>({
+  // Chart datasets
+  const datasets = ['S', 'M', 'L'].map(s => ({
     label: SIZES[s].label,
     sizeKey: s,
-    data: bins.map(b=>countBin(grouped[s],b.lo,b.hi)),
-    backgroundColor: hiddenSizes.has(s) ? 'transparent' : SIZES[s].color+SIZES[s].bgAlpha,
-    borderColor: hiddenSizes.has(s) ? 'transparent' : SIZES[s].color,
-    borderWidth:2, borderRadius:4,
-    hidden: hiddenSizes.has(s),
+    data: bins.map(b => countBin(grouped[s], b.lo, b.hi)),
+    backgroundColor: histHiddenSizes.has(s) ? 'transparent' : SIZES[s].color + SIZES[s].bgAlpha,
+    borderColor: histHiddenSizes.has(s) ? 'transparent' : SIZES[s].color,
+    borderWidth: 2, borderRadius: 4,
+    hidden: histHiddenSizes.has(s),
   }));
 
   // Percentile annotations
-  function binIndexOf(m){ return bins.findIndex(b=>m>=b.lo&&m<b.hi); }
-  const yOffsets={S_p50:-18,S_p85:-36,S_p95:-54,M_p50:0,M_p85:18,M_p95:36,L_p50:18,L_p85:36,L_p95:54};
-  const dashMap={p50:[6,3],p85:[4,4],p95:[2,3]};
-  const annotations={};
-  ['S','M','L'].forEach(s=>{
-    if(hiddenSizes.has(s)) return;
-    const color=SIZES[s].color, st=stats[s];
-    if(!st.count) return;
-    [['p50',st.p50],['p85',st.p85],['p95',st.p95]].forEach(([key,val])=>{
-      annotations[`${s}_${key}`]={
-        type:'line', scaleID:'x', value:binIndexOf(val),
-        borderColor:color, borderWidth:1.5, borderDash:dashMap[key],
-        label:{
-          display:true, content:`${s} ${key.toUpperCase()} ${val} dni`,
-          position:'start', backgroundColor:'#0d1117cc', color,
-          font:{size:10,weight:'600'}, padding:{x:5,y:3},
-          yAdjust:yOffsets[`${s}_${key}`]??0,
+  function binIndexOf(m) { return bins.findIndex(b => m >= b.lo && m < b.hi); }
+  const yOffsets = { S_p50: -18, S_p85: -36, S_p95: -54, M_p50: 0, M_p85: 18, M_p95: 36, L_p50: 18, L_p85: 36, L_p95: 54 };
+  const dashMap = { p50: [6, 3], p85: [4, 4], p95: [2, 3] };
+  const annotations = {};
+  ['S', 'M', 'L'].forEach(s => {
+    if (histHiddenSizes.has(s)) return;
+    const color = SIZES[s].color, st = stats[s];
+    if (!st.count) return;
+    [['p50', st.p50], ['p85', st.p85], ['p95', st.p95]].forEach(([key, val]) => {
+      annotations[`${s}_${key}`] = {
+        type: 'line', scaleID: 'x', value: binIndexOf(val),
+        borderColor: color, borderWidth: 1.5, borderDash: dashMap[key],
+        label: {
+          display: true, content: `${s} ${key.toUpperCase()} ${val} dni`,
+          position: 'start', backgroundColor: '#0d1117cc', color,
+          font: { size: 10, weight: '600' }, padding: { x: 5, y: 3 },
+          yAdjust: yOffsets[`${s}_${key}`] ?? 0,
         },
       };
     });
   });
 
-  if (chartInstance) { chartInstance.destroy(); }
-
+  if (histChartInstance) histChartInstance.destroy();
   const ctx = document.getElementById('histChart').getContext('2d');
-  chartInstance = new Chart(ctx,{
-    type:'bar',
-    data:{ labels:bins.map(b=>b.label), datasets },
-    options:{
-      responsive:true,
-      interaction:{mode:'index',intersect:false},
+  histChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: bins.map(b => b.label), datasets },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
       onClick(event, elements) {
         if (!elements.length) return;
         const el = elements[0];
-        const dataset = chartInstance.data.datasets[el.datasetIndex];
+        const dataset = histChartInstance.data.datasets[el.datasetIndex];
         const sizeKey = dataset.sizeKey;
         const bin = currentBins[el.index];
         if (!bin || !sizeKey) return;
-        openDeleteModal(sizeKey, bin);
+        openHistModal(sizeKey, bin);
       },
-      plugins:{
-        legend:{display:false},
-        tooltip:{
-          backgroundColor:'#1c2128', borderColor:'#30363d', borderWidth:1,
-          titleColor:'#c9d1d9', bodyColor:'#8b949e',
-          callbacks:{
-            title:items=>`\u23F1 ${items[0].label} (dni)`,
-            label:item=>` ${SIZES[['S','M','L'][item.datasetIndex]].icon} ${item.dataset.label}: ${item.raw} zam.`,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1c2128', borderColor: '#30363d', borderWidth: 1,
+          titleColor: '#c9d1d9', bodyColor: '#8b949e',
+          callbacks: {
+            title: items => `\u23F1 ${items[0].label} (dni)`,
+            label: item => ` ${SIZES[['S', 'M', 'L'][item.datasetIndex]].icon} ${item.dataset.label}: ${item.raw} zam.`,
           },
         },
-        annotation:{annotations},
+        annotation: { annotations },
       },
-      scales:{
-        x:{
-          stacked:true, grid:{color:'#21262d'},
-          ticks:{color:'#8b949e',font:{size:11}},
-          title:{display:true,text:'Czas realizacji (dni)',color:'#8b949e',font:{size:12}},
+      scales: {
+        x: {
+          stacked: true, grid: { color: '#21262d' },
+          ticks: { color: '#8b949e', font: { size: 11 } },
+          title: { display: true, text: 'Czas realizacji (dni)', color: '#8b949e', font: { size: 12 } },
         },
-        y:{
-          stacked:true, beginAtZero:true, grid:{color:'#21262d'},
-          ticks:{color:'#8b949e',font:{size:11},stepSize:1},
-          title:{display:true,text:'Liczba zam\u00F3wie\u0144',color:'#8b949e',font:{size:12}},
+        y: {
+          stacked: true, beginAtZero: true, grid: { color: '#21262d' },
+          ticks: { color: '#8b949e', font: { size: 11 }, stepSize: 1 },
+          title: { display: true, text: 'Liczba zam\u00F3wie\u0144', color: '#8b949e', font: { size: 12 } },
         },
       },
     },
   });
 
   // Legend
-  const legendEl = document.getElementById('legend');
+  const legendEl = document.getElementById('h-legend');
   legendEl.innerHTML = '';
-  ['S','M','L'].forEach(s=>{
-    const dimmed = hiddenSizes.has(s) ? 'opacity:0.35;' : '';
-    legendEl.innerHTML+=`<span class="legend-item" style="${dimmed}"><span class="legend-dot" style="background:${SIZES[s].color}88;border:2px solid ${SIZES[s].color}"></span>${SIZES[s].icon} ${SIZES[s].label}</span>`;
+  ['S', 'M', 'L'].forEach(s => {
+    const dimmed = histHiddenSizes.has(s) ? 'opacity:0.35;' : '';
+    legendEl.innerHTML += `<span class="legend-item" style="${dimmed}"><span class="legend-dot" style="background:${SIZES[s].color}88;border:2px solid ${SIZES[s].color}"></span>${SIZES[s].icon} ${SIZES[s].label}</span>`;
   });
-  legendEl.innerHTML+=`<span class="legend-item"><span class="legend-dash" style="border-color:#ffffff55"></span>&nbsp;Linia percentyla (P50/P85/P95)</span>`;
+  legendEl.innerHTML += `<span class="legend-item"><span class="legend-dash" style="border-color:#ffffff55"></span>&nbsp;Linia percentyla (P50/P85/P95)</span>`;
 }
 
-// --- Delete modal ---
-function openDeleteModal(sizeKey, bin) {
+function openHistModal(sizeKey, bin) {
   const cfg = SIZES[sizeKey];
 
   function getMatchingEntries() {
     const result = [];
-    RAW.forEach((entry, idx)=>{
-      if(entry.size === sizeKey && entry.time >= bin.lo && entry.time < bin.hi)
+    HIST_RAW.forEach((entry, idx) => {
+      if (entry.size === sizeKey && entry.time >= bin.lo && entry.time < bin.hi)
         result.push({ idx, time: entry.time });
     });
     return result;
@@ -517,79 +684,439 @@ function openDeleteModal(sizeKey, bin) {
 
   function refreshList() {
     const matches = getMatchingEntries();
-    document.getElementById('modal-subtitle').textContent =
+    document.getElementById('h-modal-subtitle').textContent =
       `Znaleziono ${matches.length} wpis${matches.length === 1 ? '' : matches.length >= 2 && matches.length <= 4 ? 'y' : 'ów'}. Kliknij „Usuń", aby usunąć wybrany wpis.`;
-
-    const listEl = document.getElementById('modal-list');
-    const emptyEl = document.getElementById('modal-empty');
+    const listEl = document.getElementById('h-modal-list');
+    const emptyEl = document.getElementById('h-modal-empty');
     listEl.innerHTML = '';
-
     if (!matches.length) {
       emptyEl.style.display = '';
     } else {
       emptyEl.style.display = 'none';
-      matches.forEach(({time}, i)=>{
+      matches.forEach(({ time }, i) => {
         const li = document.createElement('li');
         li.className = 'modal-item';
         li.innerHTML = `
           <div class="modal-item-info">
-            <span class="modal-item-idx">#${i+1}</span>
+            <span class="modal-item-idx">#${i + 1}</span>
             <span>${time} dni</span>
           </div>
           <button class="btn-delete">🗑 Usuń</button>`;
-        li.querySelector('.btn-delete').addEventListener('click', ()=>{
-          const currentIdx = RAW.findIndex(e => e.size === sizeKey && e.time === time);
-          if (currentIdx !== -1) RAW.splice(currentIdx, 1);
-          closeModal();
-          renderAll();
+        li.querySelector('.btn-delete').addEventListener('click', () => {
+          const currentIdx = HIST_RAW.findIndex(e => e.size === sizeKey && e.time === time);
+          if (currentIdx !== -1) HIST_RAW.splice(currentIdx, 1);
+          closeHistModal();
+          renderHistogram();
         });
         listEl.appendChild(li);
       });
     }
   }
 
-  document.getElementById('modal-title').textContent =
-    `${cfg.icon} ${cfg.label} — przedział ${bin.label} dni`;
+  document.getElementById('h-modal-title').textContent = `${cfg.icon} ${cfg.label} — przedział ${bin.label} dni`;
   refreshList();
-  document.getElementById('modal-overlay').classList.add('active');
+  document.getElementById('h-modal-overlay').classList.add('active');
 }
 
-function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('active');
+function closeHistModal() {
+  document.getElementById('h-modal-overlay').classList.remove('active');
 }
 
-document.getElementById('modal-close').addEventListener('click', closeModal);
-document.getElementById('modal-overlay').addEventListener('click', e=>{
-  if(e.target === document.getElementById('modal-overlay')) closeModal();
+document.getElementById('h-modal-close').addEventListener('click', closeHistModal);
+document.getElementById('h-modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('h-modal-overlay')) closeHistModal();
 });
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
 
-// Initial render
-renderAll();
-
-// Form handling
-document.getElementById('btn-add').addEventListener('click', ()=>{
-  const sizeVal = document.getElementById('inp-size').value;
-  const timeRaw = document.getElementById('inp-time').value.trim();
-  const msgEl   = document.getElementById('form-msg');
-
+document.getElementById('h-btn-add').addEventListener('click', () => {
+  const sizeVal = document.getElementById('h-inp-size').value;
+  const timeRaw = document.getElementById('h-inp-time').value.trim();
+  const msgEl   = document.getElementById('h-form-msg');
   msgEl.className = 'form-msg';
   msgEl.textContent = '';
-
   const timeNum = parseFloat(timeRaw);
   if (!timeRaw || isNaN(timeNum) || timeNum < 0) {
     msgEl.className = 'form-msg err';
     msgEl.textContent = 'Podaj prawidłową liczbę dni (≥ 0).';
     return;
   }
-
-  RAW.push({ size: sizeVal, time: timeNum });
-  renderAll();
-
-  document.getElementById('inp-time').value = '';
+  HIST_RAW.push({ size: sizeVal, time: timeNum });
+  renderHistogram();
+  document.getElementById('h-inp-time').value = '';
   msgEl.className = 'form-msg ok';
   msgEl.textContent = `Dodano: ${SIZES[sizeVal].label}, ${timeNum} dni.`;
-  setTimeout(()=>{ msgEl.className='form-msg'; }, 3000);
+  setTimeout(() => { msgEl.className = 'form-msg'; }, 3000);
+});
+
+// Initial histogram render
+renderHistogram();
+
+// ═══════════════════════════════════════════════════
+// SCATTER
+// ═══════════════════════════════════════════════════
+let SCATTER_RAW = [
+  {date:'15.07.2024',size:'S',time:49},
+  {date:'22.08.2024',size:'S',time:48},
+  {date:'10.09.2024',size:'S',time:87},
+  {date:'25.09.2024',size:'M',time:57},
+  {date:'5.10.2024', size:'M',time:148},
+  {date:'14.10.2024',size:'S',time:53},
+  {date:'28.10.2024',size:'S',time:45},
+  {date:'18.11.2024',size:'M',time:145},
+  {date:'4.12.2024', size:'L',time:105},
+  {date:'8.01.2025', size:'S',time:5},
+  {date:'20.01.2025',size:'L',time:163},
+  {date:'14.02.2025',size:'S',time:43},
+  {date:'26.02.2025',size:'M',time:415},
+  {date:'15.03.2025',size:'L',time:123},
+  {date:'10.04.2025',size:'M',time:103},
+  {date:'5.05.2025', size:'L',time:104},
+  {date:'12.06.2025',size:'L',time:302},
+  {date:'25.06.2025',size:'L',time:158},
+  {date:'2.07.2025', size:'L',time:98},
+  {date:'11.07.2025',size:'S',time:52},
+  {date:'18.07.2025',size:'M',time:95},
+  {date:'29.07.2025',size:'S',time:70},
+  {date:'3.08.2025', size:'M',time:95},
+  {date:'14.08.2025',size:'M',time:101},
+  {date:'21.08.2025',size:'M',time:57},
+  {date:'29.08.2025',size:'M',time:57},
+  {date:'8.09.2025', size:'S',time:53},
+  {date:'22.09.2025',size:'L',time:137},
+  {date:'4.10.2025', size:'S',time:73},
+  {date:'12.10.2025',size:'M',time:60},
+  {date:'19.10.2025',size:'S',time:126},
+  {date:'27.10.2025',size:'M',time:57},
+  {date:'5.11.2025', size:'L',time:124},
+  {date:'15.11.2025',size:'M',time:75},
+  {date:'25.11.2025',size:'M',time:89},
+  {date:'10.12.2025',size:'S',time:44},
+];
+
+const PCT_COLORS = { p50: '#c9d1d9', p85: '#d2a879', p95: '#f78166' };
+const TREND_DASH = [6, 4];
+
+const scatterHiddenSizes = new Set();
+let scatterChartInstance = null;
+
+function parseDate(str) {
+  const parts = str.split('.');
+  return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+}
+
+function linearRegression(points) {
+  // points: [{x: timestamp_ms, y: value}, ...]
+  const n = points.length;
+  if (n < 2) return null;
+  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+  points.forEach(p => {
+    sumX += p.x; sumY += p.y;
+    sumXY += p.x * p.y; sumXX += p.x * p.x;
+  });
+  const denom = n * sumXX - sumX * sumX;
+  if (denom === 0) return null;
+  const slope = (n * sumXY - sumX * sumY) / denom;
+  const intercept = (sumY - slope * sumX) / n;
+  return { slope, intercept };
+}
+
+function renderScatter() {
+  const grouped = { S: [], M: [], L: [] };
+  SCATTER_RAW.forEach(({ size, time, date }) => grouped[size].push({ time, date }));
+
+  // Per-size stats
+  const stats = {};
+  ['S', 'M', 'L'].forEach(s => {
+    const times = grouped[s].map(r => r.time);
+    stats[s] = {
+      count: times.length,
+      p50: pct(times, 50),
+      p85: pct(times, 85),
+      p95: pct(times, 95),
+    };
+  });
+
+  // Overall stats
+  const allTimes = SCATTER_RAW.map(r => r.time);
+  const overallStats = {
+    count: allTimes.length,
+    p50: pct(allTimes, 50),
+    p85: pct(allTimes, 85),
+    p95: pct(allTimes, 95),
+  };
+
+  // Summary cards
+  const cardsEl = document.getElementById('s-cards');
+  cardsEl.innerHTML = '';
+  ['S', 'M', 'L'].forEach(s => {
+    const cfg = SIZES[s], st = stats[s], cls = `size-${s.toLowerCase()}`;
+    const isHidden = scatterHiddenSizes.has(s);
+    const cardDiv = document.createElement('div');
+    cardDiv.className = `card ${cls}${isHidden ? ' hidden-category' : ''}`;
+    cardDiv.innerHTML = `
+      <div class="card-header">
+        <span class="card-icon">${cfg.icon}</span>
+        <span class="card-title">${cfg.label}</span>
+        <span class="card-count">${st.count} zam&oacute;wie&#324;</span>
+        <button class="btn-toggle" data-size="${s}" title="${isHidden ? 'Pokaż kategorię na wykresie' : 'Ukryj kategorię na wykresie'}">
+          ${isHidden ? '👁 Pokaż' : '🙈 Ukryj'}
+        </button>
+      </div>
+      <div class="percentiles">
+        <div class="pct-badge"><div class="label">Mediana</div><div class="value">${st.p50}<span class="unit">dni</span></div></div>
+        <div class="pct-badge"><div class="label">P85</div><div class="value">${st.p85}<span class="unit">dni</span></div></div>
+        <div class="pct-badge"><div class="label">P95</div><div class="value">${st.p95}<span class="unit">dni</span></div></div>
+      </div>`;
+    cardsEl.appendChild(cardDiv);
+    cardDiv.querySelector('.btn-toggle').addEventListener('click', () => {
+      if (scatterHiddenSizes.has(s)) scatterHiddenSizes.delete(s);
+      else scatterHiddenSizes.add(s);
+      renderScatter();
+    });
+  });
+
+  // Overall summary bar
+  const sumBar = document.getElementById('s-summary-bar');
+  sumBar.innerHTML = `
+    <span class="sum-title">📊 Łącznie</span>
+    <div class="sum-badge"><div class="slabel">Zamówień</div><div class="svalue">${overallStats.count}</div></div>
+    <div class="sum-badge p50"><div class="slabel">Mediana (P50)</div><div class="svalue">${overallStats.p50}<span class="sunit">dni</span></div></div>
+    <div class="sum-badge p85"><div class="slabel">P85</div><div class="svalue">${overallStats.p85}<span class="sunit">dni</span></div></div>
+    <div class="sum-badge p95"><div class="slabel">P95</div><div class="svalue">${overallStats.p95}<span class="sunit">dni</span></div></div>`;
+
+  // Scatter point datasets
+  const scatterDatasets = ['S', 'M', 'L'].map(s => {
+    const cfg = SIZES[s];
+    const isHidden = scatterHiddenSizes.has(s);
+    return {
+      label: cfg.label,
+      sizeKey: s,
+      type: 'scatter',
+      data: SCATTER_RAW
+        .map((r, idx) => ({ ...r, _rawIdx: idx }))
+        .filter(r => r.size === s)
+        .map(r => ({ x: parseDate(r.date), y: r.time, _rawIdx: r._rawIdx, _date: r.date })),
+      backgroundColor: isHidden ? 'transparent' : cfg.color + 'cc',
+      borderColor: isHidden ? 'transparent' : cfg.color,
+      borderWidth: 1.5,
+      pointRadius: 7,
+      pointHoverRadius: 10,
+      hidden: isHidden,
+    };
+  });
+
+  // Trend line datasets (linear regression per size)
+  const allDates = SCATTER_RAW.map(r => parseDate(r.date).getTime());
+  const globalMinTs = Math.min(...allDates);
+  const globalMaxTs = Math.max(...allDates);
+
+  const trendDatasets = ['S', 'M', 'L'].map(s => {
+    const cfg = SIZES[s];
+    const isHidden = scatterHiddenSizes.has(s);
+    const points = grouped[s].map(r => ({
+      x: parseDate(r.date).getTime(),
+      y: r.time,
+    }));
+    const reg = linearRegression(points);
+    if (!reg) return null;
+    const { slope, intercept } = reg;
+    return {
+      label: `Trend ${cfg.label}`,
+      sizeKey: s,
+      isTrend: true,
+      type: 'line',
+      data: [
+        { x: new Date(globalMinTs), y: slope * globalMinTs + intercept },
+        { x: new Date(globalMaxTs), y: slope * globalMaxTs + intercept },
+      ],
+      borderColor: isHidden ? 'transparent' : cfg.color + 'bb',
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      borderDash: TREND_DASH,
+      pointRadius: 0,
+      pointHoverRadius: 0,
+      fill: false,
+      tension: 0,
+      hidden: isHidden,
+    };
+  }).filter(Boolean);
+
+  // Overall percentile annotations (horizontal lines)
+  const annotations = {
+    line_p50: {
+      type: 'line', yMin: overallStats.p50, yMax: overallStats.p50,
+      borderColor: PCT_COLORS.p50 + 'aa', borderWidth: 1.5, borderDash: [6, 3],
+      label: {
+        display: true, content: `Mediana (P50): ${overallStats.p50} dni`,
+        position: 'end', backgroundColor: '#0d1117cc', color: PCT_COLORS.p50,
+        font: { size: 10, weight: '600' }, padding: { x: 5, y: 3 }, yAdjust: -10,
+      },
+    },
+    line_p85: {
+      type: 'line', yMin: overallStats.p85, yMax: overallStats.p85,
+      borderColor: PCT_COLORS.p85 + 'aa', borderWidth: 1.5, borderDash: [4, 4],
+      label: {
+        display: true, content: `P85: ${overallStats.p85} dni`,
+        position: 'end', backgroundColor: '#0d1117cc', color: PCT_COLORS.p85,
+        font: { size: 10, weight: '600' }, padding: { x: 5, y: 3 }, yAdjust: -10,
+      },
+    },
+    line_p95: {
+      type: 'line', yMin: overallStats.p95, yMax: overallStats.p95,
+      borderColor: PCT_COLORS.p95 + 'aa', borderWidth: 1.5, borderDash: [2, 3],
+      label: {
+        display: true, content: `P95: ${overallStats.p95} dni`,
+        position: 'end', backgroundColor: '#0d1117cc', color: PCT_COLORS.p95,
+        font: { size: 10, weight: '600' }, padding: { x: 5, y: 3 }, yAdjust: -10,
+      },
+    },
+  };
+
+  if (scatterChartInstance) scatterChartInstance.destroy();
+  const ctx = document.getElementById('scatterChart').getContext('2d');
+  scatterChartInstance = new Chart(ctx, {
+    type: 'scatter',
+    data: { datasets: [...scatterDatasets, ...trendDatasets] },
+    options: {
+      responsive: true,
+      onClick(event, elements) {
+        if (!elements.length) return;
+        const el = elements[0];
+        const ds = scatterChartInstance.data.datasets[el.datasetIndex];
+        if (ds.isTrend) return;
+        const pt = ds.data[el.index];
+        if (pt == null) return;
+        openScatterModal(pt._rawIdx);
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1c2128', borderColor: '#30363d', borderWidth: 1,
+          titleColor: '#c9d1d9', bodyColor: '#8b949e',
+          filter: item => !scatterChartInstance.data.datasets[item.datasetIndex].isTrend,
+          callbacks: {
+            title: items => `📅 ${items[0].raw._date}`,
+            label: item => {
+              const s = item.dataset.sizeKey;
+              return ` ${SIZES[s].icon} ${item.dataset.label}: ${item.raw.y} dni`;
+            },
+          },
+        },
+        annotation: { annotations },
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'month', tooltipFormat: 'dd.MM.yyyy', displayFormats: { month: 'MMM yyyy' } },
+          grid: { color: '#21262d' },
+          ticks: { color: '#8b949e', font: { size: 11 } },
+          title: { display: true, text: 'Data ukończenia', color: '#8b949e', font: { size: 12 } },
+        },
+        y: {
+          beginAtZero: true, grid: { color: '#21262d' },
+          ticks: { color: '#8b949e', font: { size: 11 } },
+          title: { display: true, text: 'Czas realizacji (dni)', color: '#8b949e', font: { size: 12 } },
+        },
+      },
+    },
+  });
+
+  // Legend
+  const legendEl = document.getElementById('s-legend');
+  legendEl.innerHTML = '';
+  ['S', 'M', 'L'].forEach(s => {
+    const dimmed = scatterHiddenSizes.has(s) ? 'opacity:0.35;' : '';
+    legendEl.innerHTML += `<span class="legend-item" style="${dimmed}">
+      <span class="legend-dot-circle" style="background:${SIZES[s].color}cc;border:2px solid ${SIZES[s].color}"></span>
+      ${SIZES[s].icon} ${SIZES[s].label}
+    </span>`;
+  });
+  ['S', 'M', 'L'].forEach(s => {
+    const dimmed = scatterHiddenSizes.has(s) ? 'opacity:0.35;' : '';
+    legendEl.innerHTML += `<span class="legend-item" style="${dimmed}">
+      <span class="legend-line" style="border-color:${SIZES[s].color}bb;border-top-style:dashed"></span>
+      Trend ${SIZES[s].label}
+    </span>`;
+  });
+  legendEl.innerHTML += `
+    <span class="legend-item">
+      <span class="legend-dash" style="border-color:${PCT_COLORS.p50}aa;border-style:dashed"></span>
+      &nbsp;Mediana (P50)
+    </span>
+    <span class="legend-item">
+      <span class="legend-dash" style="border-color:${PCT_COLORS.p85}aa;border-style:dashed"></span>
+      &nbsp;P85
+    </span>
+    <span class="legend-item">
+      <span class="legend-dash" style="border-color:${PCT_COLORS.p95}aa;border-style:dashed"></span>
+      &nbsp;P95
+    </span>`;
+}
+
+function openScatterModal(rawIdx) {
+  const entry = SCATTER_RAW[rawIdx];
+  if (!entry) return;
+  const cfg = SIZES[entry.size];
+  document.getElementById('s-modal-title').textContent = `${cfg.icon} ${cfg.label} — ${entry.date}`;
+  document.getElementById('s-modal-subtitle').textContent = `Czas realizacji: ${entry.time} dni`;
+  const bodyEl = document.getElementById('s-modal-body');
+  bodyEl.innerHTML = `
+    <div class="modal-entry">
+      <div class="modal-entry-info">
+        <span>${cfg.icon} ${entry.time} dni</span>
+        <span class="modal-entry-detail">📅 ${entry.date} &nbsp;|&nbsp; Rozmiar: ${entry.size}</span>
+      </div>
+      <button class="btn-delete" id="s-btn-confirm-delete">🗑 Usuń wpis</button>
+    </div>`;
+  bodyEl.querySelector('#s-btn-confirm-delete').addEventListener('click', () => {
+    SCATTER_RAW.splice(rawIdx, 1);
+    closeScatterModal();
+    renderScatter();
+  });
+  document.getElementById('s-modal-overlay').classList.add('active');
+}
+
+function closeScatterModal() {
+  document.getElementById('s-modal-overlay').classList.remove('active');
+}
+
+document.getElementById('s-modal-close').addEventListener('click', closeScatterModal);
+document.getElementById('s-modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('s-modal-overlay')) closeScatterModal();
+});
+
+document.getElementById('s-btn-add').addEventListener('click', () => {
+  const dateVal = document.getElementById('s-inp-date').value;
+  const sizeVal = document.getElementById('s-inp-size').value;
+  const timeRaw = document.getElementById('s-inp-time').value.trim();
+  const msgEl   = document.getElementById('s-form-msg');
+  msgEl.className = 'form-msg';
+  msgEl.textContent = '';
+  if (!dateVal) {
+    msgEl.className = 'form-msg err';
+    msgEl.textContent = 'Podaj datę ukończenia.';
+    return;
+  }
+  const timeNum = parseInt(timeRaw, 10);
+  if (!timeRaw || isNaN(timeNum) || timeNum < 0) {
+    msgEl.className = 'form-msg err';
+    msgEl.textContent = 'Podaj prawidłową liczbę dni (≥ 0).';
+    return;
+  }
+  const [y, m, d] = dateVal.split('-');
+  const dateStr = `${parseInt(d)}.${parseInt(m)}.${y}`;
+  SCATTER_RAW.push({ date: dateStr, size: sizeVal, time: timeNum });
+  SCATTER_RAW.sort((a, b) => parseDate(a.date) - parseDate(b.date));
+  renderScatter();
+  document.getElementById('s-inp-date').value = '';
+  document.getElementById('s-inp-time').value = '';
+  msgEl.className = 'form-msg ok';
+  msgEl.textContent = `Dodano: ${SIZES[sizeVal].icon} ${SIZES[sizeVal].label}, ${dateStr}, ${timeNum} dni.`;
+  setTimeout(() => { msgEl.className = 'form-msg'; }, 3500);
+});
+
+// Close modals on Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeHistModal(); closeScatterModal(); }
 });
 </script>
 </body>
