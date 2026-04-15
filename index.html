@@ -180,6 +180,106 @@
     }
     .form-msg.ok  { display:block; background:#12261e; color:#39d353; border:1px solid #39d35344; }
     .form-msg.err { display:block; background:#2a1010; color:#f78166; border:1px solid #f7816644; }
+    .btn-toggle {
+      margin-left: auto;
+      background: none;
+      border: 1px solid #30363d;
+      border-radius: 20px;
+      padding: 3px 11px;
+      font-size: 0.73rem;
+      color: #8b949e;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      line-height: 1.4;
+    }
+    .btn-toggle:hover { background: #21262d; color: #c9d1d9; }
+    .card.hidden-category { opacity: 0.38; }
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #000000bb;
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 14px;
+      padding: 24px 28px;
+      min-width: 320px;
+      max-width: 480px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #f0f6fc;
+      margin-bottom: 4px;
+    }
+    .modal-subtitle {
+      font-size: 0.8rem;
+      color: #8b949e;
+      margin-bottom: 16px;
+    }
+    .modal-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .modal-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #21262d;
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-size: 0.88rem;
+      color: #c9d1d9;
+    }
+    .modal-item-info { display: flex; align-items: center; gap: 8px; }
+    .modal-item-idx {
+      font-size: 0.7rem;
+      color: #8b949e;
+      min-width: 24px;
+    }
+    .btn-delete {
+      background: #3d1a1a;
+      border: 1px solid #f7816644;
+      border-radius: 6px;
+      color: #f78166;
+      font-size: 0.8rem;
+      padding: 4px 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-delete:hover { background: #5a2020; }
+    .modal-empty {
+      text-align: center;
+      color: #8b949e;
+      font-size: 0.85rem;
+      padding: 16px 0;
+    }
+    .modal-close {
+      margin-top: 16px;
+      width: 100%;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 7px;
+      color: #c9d1d9;
+      font-size: 0.9rem;
+      padding: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .modal-close:hover { background: #30363d; }
+    .chart-hint {
+      font-size: 0.75rem;
+      color: #8b949e;
+      text-align: right;
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
@@ -211,6 +311,18 @@
   <div class="chart-title">Rozkład czasów realizacji (dni) — podział na rozmiar</div>
   <canvas id="histChart"></canvas>
   <div class="legend" id="legend"></div>
+  <div class="chart-hint">💡 Kliknij na słupek, aby zobaczyć wpisy i usunąć wybrany</div>
+</div>
+
+<!-- Modal – delete entry -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-subtitle" id="modal-subtitle"></div>
+    <ul class="modal-list" id="modal-list"></ul>
+    <div class="modal-empty" id="modal-empty" style="display:none">Brak wpisów w tym przedziale.</div>
+    <button class="modal-close" id="modal-close">Zamknij</button>
+  </div>
 </div>
 
 <script>
@@ -235,6 +347,8 @@ const SIZES = {
   L:{ label:'L \u2013 Large',  icon:'\uD83C\uDFD7\uFE0F', color:'#f78166', bgAlpha:'55' },
 };
 
+const hiddenSizes = new Set();
+
 function pct(arr, p) {
   const s = [...arr].sort((a,b)=>a-b);
   const idx = p/100*(s.length-1);
@@ -243,6 +357,7 @@ function pct(arr, p) {
 }
 
 let chartInstance = null;
+let currentBins = [];
 
 function renderAll() {
   const grouped = {};
@@ -265,6 +380,7 @@ function renderAll() {
   const bins = [];
   for(let lo=0; lo<MAX_TIME; lo+=BIN_WIDTH)
     bins.push({lo, hi:lo+BIN_WIDTH, label:`${lo}\u2013${lo+BIN_WIDTH}`});
+  currentBins = bins;
 
   function countBin(times,lo,hi){ return times.filter(t=>t>=lo&&t<hi).length; }
 
@@ -273,28 +389,39 @@ function renderAll() {
   cardsEl.innerHTML = '';
   ['S','M','L'].forEach(s=>{
     const cfg=SIZES[s], st=stats[s], cls=`size-${s.toLowerCase()}`;
-    cardsEl.innerHTML+=`
-      <div class="card ${cls}">
-        <div class="card-header">
-          <span class="card-icon">${cfg.icon}</span>
-          <span class="card-title">${cfg.label}</span>
-          <span class="card-count">${st.count} zam&oacute;wie&#324;</span>
-        </div>
-        <div class="percentiles">
-          <div class="pct-badge"><div class="label">P50</div><div class="value">${st.p50}<span class="unit">dni</span></div></div>
-          <div class="pct-badge"><div class="label">P85</div><div class="value">${st.p85}<span class="unit">dni</span></div></div>
-          <div class="pct-badge"><div class="label">P95</div><div class="value">${st.p95}<span class="unit">dni</span></div></div>
-        </div>
+    const isHidden = hiddenSizes.has(s);
+    const toggleLabel = isHidden ? '👁 Pokaż' : '🙈 Ukryj';
+    const cardDiv = document.createElement('div');
+    cardDiv.className = `card ${cls}${isHidden ? ' hidden-category' : ''}`;
+    cardDiv.innerHTML = `
+      <div class="card-header">
+        <span class="card-icon">${cfg.icon}</span>
+        <span class="card-title">${cfg.label}</span>
+        <span class="card-count">${st.count} zam&oacute;wie&#324;</span>
+        <button class="btn-toggle" data-size="${s}" title="${isHidden ? 'Pokaż kategorię na wykresie' : 'Ukryj kategorię na wykresie'}">${toggleLabel}</button>
+      </div>
+      <div class="percentiles">
+        <div class="pct-badge"><div class="label">P50</div><div class="value">${st.p50}<span class="unit">dni</span></div></div>
+        <div class="pct-badge"><div class="label">P85</div><div class="value">${st.p85}<span class="unit">dni</span></div></div>
+        <div class="pct-badge"><div class="label">P95</div><div class="value">${st.p95}<span class="unit">dni</span></div></div>
       </div>`;
+    cardsEl.appendChild(cardDiv);
+    cardDiv.querySelector('.btn-toggle').addEventListener('click', ()=>{
+      if(hiddenSizes.has(s)) hiddenSizes.delete(s);
+      else hiddenSizes.add(s);
+      renderAll();
+    });
   });
 
-  // Chart datasets
+  // Chart datasets – skip hidden sizes
   const datasets = ['S','M','L'].map(s=>({
     label: SIZES[s].label,
+    sizeKey: s,
     data: bins.map(b=>countBin(grouped[s],b.lo,b.hi)),
-    backgroundColor: SIZES[s].color+SIZES[s].bgAlpha,
-    borderColor: SIZES[s].color,
+    backgroundColor: hiddenSizes.has(s) ? 'transparent' : SIZES[s].color+SIZES[s].bgAlpha,
+    borderColor: hiddenSizes.has(s) ? 'transparent' : SIZES[s].color,
     borderWidth:2, borderRadius:4,
+    hidden: hiddenSizes.has(s),
   }));
 
   // Percentile annotations
@@ -303,6 +430,7 @@ function renderAll() {
   const dashMap={p50:[6,3],p85:[4,4],p95:[2,3]};
   const annotations={};
   ['S','M','L'].forEach(s=>{
+    if(hiddenSizes.has(s)) return;
     const color=SIZES[s].color, st=stats[s];
     if(!st.count) return;
     [['p50',st.p50],['p85',st.p85],['p95',st.p95]].forEach(([key,val])=>{
@@ -328,6 +456,15 @@ function renderAll() {
     options:{
       responsive:true,
       interaction:{mode:'index',intersect:false},
+      onClick(event, elements) {
+        if (!elements.length) return;
+        const el = elements[0];
+        const dataset = chartInstance.data.datasets[el.datasetIndex];
+        const sizeKey = dataset.sizeKey;
+        const bin = currentBins[el.index];
+        if (!bin || !sizeKey) return;
+        openDeleteModal(sizeKey, bin);
+      },
       plugins:{
         legend:{display:false},
         tooltip:{
@@ -359,10 +496,73 @@ function renderAll() {
   const legendEl = document.getElementById('legend');
   legendEl.innerHTML = '';
   ['S','M','L'].forEach(s=>{
-    legendEl.innerHTML+=`<span class="legend-item"><span class="legend-dot" style="background:${SIZES[s].color}88;border:2px solid ${SIZES[s].color}"></span>${SIZES[s].icon} ${SIZES[s].label}</span>`;
+    const dimmed = hiddenSizes.has(s) ? 'opacity:0.35;' : '';
+    legendEl.innerHTML+=`<span class="legend-item" style="${dimmed}"><span class="legend-dot" style="background:${SIZES[s].color}88;border:2px solid ${SIZES[s].color}"></span>${SIZES[s].icon} ${SIZES[s].label}</span>`;
   });
   legendEl.innerHTML+=`<span class="legend-item"><span class="legend-dash" style="border-color:#ffffff55"></span>&nbsp;Linia percentyla (P50/P85/P95)</span>`;
 }
+
+// --- Delete modal ---
+function openDeleteModal(sizeKey, bin) {
+  const cfg = SIZES[sizeKey];
+
+  function getMatchingEntries() {
+    const result = [];
+    RAW.forEach((entry, idx)=>{
+      if(entry.size === sizeKey && entry.time >= bin.lo && entry.time < bin.hi)
+        result.push({ idx, time: entry.time });
+    });
+    return result;
+  }
+
+  function refreshList() {
+    const matches = getMatchingEntries();
+    document.getElementById('modal-subtitle').textContent =
+      `Znaleziono ${matches.length} wpis${matches.length === 1 ? '' : matches.length >= 2 && matches.length <= 4 ? 'y' : 'ów'}. Kliknij „Usuń", aby usunąć wybrany wpis.`;
+
+    const listEl = document.getElementById('modal-list');
+    const emptyEl = document.getElementById('modal-empty');
+    listEl.innerHTML = '';
+
+    if (!matches.length) {
+      emptyEl.style.display = '';
+    } else {
+      emptyEl.style.display = 'none';
+      matches.forEach(({time}, i)=>{
+        const li = document.createElement('li');
+        li.className = 'modal-item';
+        li.innerHTML = `
+          <div class="modal-item-info">
+            <span class="modal-item-idx">#${i+1}</span>
+            <span>${time} dni</span>
+          </div>
+          <button class="btn-delete">🗑 Usuń</button>`;
+        li.querySelector('.btn-delete').addEventListener('click', ()=>{
+          const currentIdx = RAW.findIndex(e => e.size === sizeKey && e.time === time);
+          if (currentIdx !== -1) RAW.splice(currentIdx, 1);
+          closeModal();
+          renderAll();
+        });
+        listEl.appendChild(li);
+      });
+    }
+  }
+
+  document.getElementById('modal-title').textContent =
+    `${cfg.icon} ${cfg.label} — przedział ${bin.label} dni`;
+  refreshList();
+  document.getElementById('modal-overlay').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('active');
+}
+
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('modal-overlay').addEventListener('click', e=>{
+  if(e.target === document.getElementById('modal-overlay')) closeModal();
+});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
 
 // Initial render
 renderAll();
