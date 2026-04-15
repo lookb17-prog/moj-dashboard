@@ -220,7 +220,7 @@ const annotations={};
   });
 });
 
-Chart.register(window['chartjs-plugin-annotation']);
+// chartjs-plugin-annotation (CDN/UMD build) auto-registers with Chart.js on load
 const ctx=document.getElementById('histChart').getContext('2d');
 new Chart(ctx,{
   type:'bar',
