@@ -1103,7 +1103,7 @@ document.getElementById('s-btn-add').addEventListener('click', () => {
     return;
   }
   const [y, m, d] = dateVal.split('-');
-  const dateStr = `${parseInt(d)}.${parseInt(m)}.${y}`;
+  const dateStr = `${parseInt(d, 10)}.${parseInt(m, 10)}.${y}`;
   SCATTER_RAW.push({ date: dateStr, size: sizeVal, time: timeNum });
   SCATTER_RAW.sort((a, b) => parseDate(a.date) - parseDate(b.date));
   renderScatter();
