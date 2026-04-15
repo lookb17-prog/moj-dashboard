@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard – Histogram Czasów Realizacji</title>
+  <title>Dashboard – Histogram Czasów Realizacji (Dni)</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
   <style>
@@ -113,6 +113,73 @@
     }
     .legend-dot  { width:12px; height:12px; border-radius:3px; }
     .legend-dash { width:22px; height:2px; border-top:2px dashed; }
+    .form-container {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 18px 24px;
+      margin-bottom: 28px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .form-container legend {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #c9d1d9;
+      margin-bottom: 12px;
+      width: 100%;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .form-group label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #8b949e;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .form-group input, .form-group select {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 7px;
+      color: #e6edf3;
+      font-size: 0.92rem;
+      padding: 7px 12px;
+      outline: none;
+      min-width: 120px;
+      transition: border-color 0.15s;
+    }
+    .form-group input:focus, .form-group select:focus {
+      border-color: #58a6ff;
+    }
+    .form-group select option { background: #161b22; }
+    .btn-add {
+      background: #238636;
+      border: 1px solid #2ea043;
+      border-radius: 7px;
+      color: #fff;
+      font-size: 0.92rem;
+      font-weight: 600;
+      padding: 8px 20px;
+      cursor: pointer;
+      transition: background 0.15s;
+      align-self: flex-end;
+    }
+    .btn-add:hover { background: #2ea043; }
+    .form-msg {
+      font-size: 0.8rem;
+      padding: 5px 10px;
+      border-radius: 6px;
+      display: none;
+      align-self: flex-end;
+    }
+    .form-msg.ok  { display:block; background:#12261e; color:#39d353; border:1px solid #39d35344; }
+    .form-msg.err { display:block; background:#2a1010; color:#f78166; border:1px solid #f7816644; }
   </style>
 </head>
 <body>
@@ -120,16 +187,34 @@
 <h1>📊 Histogram Czasów Realizacji</h1>
 <p class="subtitle">Analiza czasów realizacji według rozmiaru zamówienia</p>
 
+<div class="form-container">
+  <legend>➕ Dodaj nowy wpis</legend>
+  <div class="form-group">
+    <label for="inp-size">Rozmiar</label>
+    <select id="inp-size">
+      <option value="S">S – Small</option>
+      <option value="M">M – Medium</option>
+      <option value="L">L – Large</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label for="inp-time">Czas realizacji (dni)</label>
+    <input id="inp-time" type="number" min="0" step="0.1" placeholder="np. 3.5" />
+  </div>
+  <button class="btn-add" id="btn-add">Dodaj</button>
+  <span class="form-msg" id="form-msg"></span>
+</div>
+
 <div class="cards-grid" id="cards"></div>
 
 <div class="chart-container">
-  <div class="chart-title">Rozkład czasów realizacji (minuty) — podział na rozmiar</div>
+  <div class="chart-title">Rozkład czasów realizacji (dni) — podział na rozmiar</div>
   <canvas id="histChart"></canvas>
   <div class="legend" id="legend"></div>
 </div>
 
 <script>
-const RAW = [
+let RAW = [
   {size:'S',time:49},{size:'S',time:48},{size:'S',time:87},
   {size:'M',time:57},{size:'M',time:148},{size:'S',time:53},
   {size:'S',time:45},{size:'M',time:145},{size:'L',time:105},
@@ -154,113 +239,158 @@ function pct(arr, p) {
   const s = [...arr].sort((a,b)=>a-b);
   const idx = p/100*(s.length-1);
   const lo=Math.floor(idx), hi=Math.ceil(idx);
-  return Math.round(s[lo]+(idx-lo)*(s[hi]-s[lo]));
+  return parseFloat((s[lo]+(idx-lo)*(s[hi]-s[lo])).toFixed(1));
 }
 
-const grouped = {};
-RAW.forEach(({size,time})=>{ if(!grouped[size]) grouped[size]=[]; grouped[size].push(time); });
+let chartInstance = null;
 
-const stats = {};
-Object.entries(grouped).forEach(([s,times])=>{
-  stats[s]={ times, count:times.length, p50:pct(times,50), p85:pct(times,85), p95:pct(times,95) };
-});
+function renderAll() {
+  const grouped = {};
+  RAW.forEach(({size,time})=>{ if(!grouped[size]) grouped[size]=[]; grouped[size].push(time); });
+  ['S','M','L'].forEach(s=>{ if(!grouped[s]) grouped[s]=[]; });
 
-const BIN_WIDTH=50, MAX_TIME=450;
-const bins=[];
-for(let lo=0;lo<MAX_TIME;lo+=BIN_WIDTH) bins.push({lo,hi:lo+BIN_WIDTH,label:`${lo}\u2013${lo+BIN_WIDTH}`});
-
-function countBin(times,lo,hi){ return times.filter(t=>t>=lo&&t<hi).length; }
-
-// Stat cards
-const cardsEl=document.getElementById('cards');
-['S','M','L'].forEach(s=>{
-  const cfg=SIZES[s], st=stats[s], cls=`size-${s.toLowerCase()}`;
-  cardsEl.innerHTML+=`
-    <div class="card ${cls}">
-      <div class="card-header">
-        <span class="card-icon">${cfg.icon}</span>
-        <span class="card-title">${cfg.label}</span>
-        <span class="card-count">${st.count} zam&oacute;wie&#324;</span>
-      </div>
-      <div class="percentiles">
-        <div class="pct-badge"><div class="label">P50</div><div class="value">${st.p50}<span class="unit">min</span></div></div>
-        <div class="pct-badge"><div class="label">P85</div><div class="value">${st.p85}<span class="unit">min</span></div></div>
-        <div class="pct-badge"><div class="label">P95</div><div class="value">${st.p95}<span class="unit">min</span></div></div>
-      </div>
-    </div>`;
-});
-
-// Chart datasets
-const datasets=['S','M','L'].map(s=>({
-  label: SIZES[s].label,
-  data: bins.map(b=>countBin(grouped[s],b.lo,b.hi)),
-  backgroundColor: SIZES[s].color+SIZES[s].bgAlpha,
-  borderColor: SIZES[s].color,
-  borderWidth:2, borderRadius:4,
-}));
-
-// Percentile annotations
-function binIndexOf(m){ return bins.findIndex(b=>m>=b.lo&&m<b.hi); }
-const yOffsets={S_p50:-18,S_p85:-36,S_p95:-54,M_p50:0,M_p85:18,M_p95:36,L_p50:18,L_p85:36,L_p95:54};
-const dashMap={p50:[6,3],p85:[4,4],p95:[2,3]};
-const annotations={};
-['S','M','L'].forEach(s=>{
-  const color=SIZES[s].color, st=stats[s];
-  [['p50',st.p50],['p85',st.p85],['p95',st.p95]].forEach(([key,val])=>{
-    annotations[`${s}_${key}`]={
-      type:'line', scaleID:'x', value:binIndexOf(val),
-      borderColor:color, borderWidth:1.5, borderDash:dashMap[key],
-      label:{
-        display:true, content:`${s} ${key.toUpperCase()} ${val}m`,
-        position:'start', backgroundColor:'#0d1117cc', color,
-        font:{size:10,weight:'600'}, padding:{x:5,y:3},
-        yAdjust:yOffsets[`${s}_${key}`]??0,
-      },
+  const stats = {};
+  Object.entries(grouped).forEach(([s,times])=>{
+    stats[s]={ times, count:times.length,
+      p50: times.length ? pct(times,50) : 0,
+      p85: times.length ? pct(times,85) : 0,
+      p95: times.length ? pct(times,95) : 0,
     };
   });
-});
 
-// chartjs-plugin-annotation (CDN/UMD build) auto-registers with Chart.js on load
-const ctx=document.getElementById('histChart').getContext('2d');
-new Chart(ctx,{
-  type:'bar',
-  data:{ labels:bins.map(b=>b.label), datasets },
-  options:{
-    responsive:true,
-    interaction:{mode:'index',intersect:false},
-    plugins:{
-      legend:{display:false},
-      tooltip:{
-        backgroundColor:'#1c2128', borderColor:'#30363d', borderWidth:1,
-        titleColor:'#c9d1d9', bodyColor:'#8b949e',
-        callbacks:{
-          title:items=>`\u23F1 ${items[0].label} min`,
-          label:item=>` ${SIZES[['S','M','L'][item.datasetIndex]].icon} ${item.dataset.label}: ${item.raw} zam.`,
+  const allTimes = RAW.map(r=>r.time);
+  const BIN_WIDTH = 50;
+  const maxTime = allTimes.length ? Math.max(...allTimes) : 450;
+  const MAX_TIME = Math.ceil((maxTime + BIN_WIDTH) / BIN_WIDTH) * BIN_WIDTH;
+  const bins = [];
+  for(let lo=0; lo<MAX_TIME; lo+=BIN_WIDTH)
+    bins.push({lo, hi:lo+BIN_WIDTH, label:`${lo}\u2013${lo+BIN_WIDTH}`});
+
+  function countBin(times,lo,hi){ return times.filter(t=>t>=lo&&t<hi).length; }
+
+  // Stat cards
+  const cardsEl = document.getElementById('cards');
+  cardsEl.innerHTML = '';
+  ['S','M','L'].forEach(s=>{
+    const cfg=SIZES[s], st=stats[s], cls=`size-${s.toLowerCase()}`;
+    cardsEl.innerHTML+=`
+      <div class="card ${cls}">
+        <div class="card-header">
+          <span class="card-icon">${cfg.icon}</span>
+          <span class="card-title">${cfg.label}</span>
+          <span class="card-count">${st.count} zam&oacute;wie&#324;</span>
+        </div>
+        <div class="percentiles">
+          <div class="pct-badge"><div class="label">P50</div><div class="value">${st.p50}<span class="unit">dni</span></div></div>
+          <div class="pct-badge"><div class="label">P85</div><div class="value">${st.p85}<span class="unit">dni</span></div></div>
+          <div class="pct-badge"><div class="label">P95</div><div class="value">${st.p95}<span class="unit">dni</span></div></div>
+        </div>
+      </div>`;
+  });
+
+  // Chart datasets
+  const datasets = ['S','M','L'].map(s=>({
+    label: SIZES[s].label,
+    data: bins.map(b=>countBin(grouped[s],b.lo,b.hi)),
+    backgroundColor: SIZES[s].color+SIZES[s].bgAlpha,
+    borderColor: SIZES[s].color,
+    borderWidth:2, borderRadius:4,
+  }));
+
+  // Percentile annotations
+  function binIndexOf(m){ return bins.findIndex(b=>m>=b.lo&&m<b.hi); }
+  const yOffsets={S_p50:-18,S_p85:-36,S_p95:-54,M_p50:0,M_p85:18,M_p95:36,L_p50:18,L_p85:36,L_p95:54};
+  const dashMap={p50:[6,3],p85:[4,4],p95:[2,3]};
+  const annotations={};
+  ['S','M','L'].forEach(s=>{
+    const color=SIZES[s].color, st=stats[s];
+    if(!st.count) return;
+    [['p50',st.p50],['p85',st.p85],['p95',st.p95]].forEach(([key,val])=>{
+      annotations[`${s}_${key}`]={
+        type:'line', scaleID:'x', value:binIndexOf(val),
+        borderColor:color, borderWidth:1.5, borderDash:dashMap[key],
+        label:{
+          display:true, content:`${s} ${key.toUpperCase()} ${val} dni`,
+          position:'start', backgroundColor:'#0d1117cc', color,
+          font:{size:10,weight:'600'}, padding:{x:5,y:3},
+          yAdjust:yOffsets[`${s}_${key}`]??0,
+        },
+      };
+    });
+  });
+
+  if (chartInstance) { chartInstance.destroy(); }
+
+  const ctx = document.getElementById('histChart').getContext('2d');
+  chartInstance = new Chart(ctx,{
+    type:'bar',
+    data:{ labels:bins.map(b=>b.label), datasets },
+    options:{
+      responsive:true,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#1c2128', borderColor:'#30363d', borderWidth:1,
+          titleColor:'#c9d1d9', bodyColor:'#8b949e',
+          callbacks:{
+            title:items=>`\u23F1 ${items[0].label} (dni)`,
+            label:item=>` ${SIZES[['S','M','L'][item.datasetIndex]].icon} ${item.dataset.label}: ${item.raw} zam.`,
+          },
+        },
+        annotation:{annotations},
+      },
+      scales:{
+        x:{
+          stacked:true, grid:{color:'#21262d'},
+          ticks:{color:'#8b949e',font:{size:11}},
+          title:{display:true,text:'Czas realizacji (dni)',color:'#8b949e',font:{size:12}},
+        },
+        y:{
+          stacked:true, beginAtZero:true, grid:{color:'#21262d'},
+          ticks:{color:'#8b949e',font:{size:11},stepSize:1},
+          title:{display:true,text:'Liczba zam\u00F3wie\u0144',color:'#8b949e',font:{size:12}},
         },
       },
-      annotation:{annotations},
     },
-    scales:{
-      x:{
-        stacked:false, grid:{color:'#21262d'},
-        ticks:{color:'#8b949e',font:{size:11}},
-        title:{display:true,text:'Czas realizacji (minuty)',color:'#8b949e',font:{size:12}},
-      },
-      y:{
-        beginAtZero:true, grid:{color:'#21262d'},
-        ticks:{color:'#8b949e',font:{size:11},stepSize:1},
-        title:{display:true,text:'Liczba zam\u00F3wie\u0144',color:'#8b949e',font:{size:12}},
-      },
-    },
-  },
-});
+  });
 
-// Legend
-const legendEl=document.getElementById('legend');
-['S','M','L'].forEach(s=>{
-  legendEl.innerHTML+=`<span class="legend-item"><span class="legend-dot" style="background:${SIZES[s].color}88;border:2px solid ${SIZES[s].color}"></span>${SIZES[s].icon} ${SIZES[s].label}</span>`;
+  // Legend
+  const legendEl = document.getElementById('legend');
+  legendEl.innerHTML = '';
+  ['S','M','L'].forEach(s=>{
+    legendEl.innerHTML+=`<span class="legend-item"><span class="legend-dot" style="background:${SIZES[s].color}88;border:2px solid ${SIZES[s].color}"></span>${SIZES[s].icon} ${SIZES[s].label}</span>`;
+  });
+  legendEl.innerHTML+=`<span class="legend-item"><span class="legend-dash" style="border-color:#ffffff55"></span>&nbsp;Linia percentyla (P50/P85/P95)</span>`;
+}
+
+// Initial render
+renderAll();
+
+// Form handling
+document.getElementById('btn-add').addEventListener('click', ()=>{
+  const sizeVal = document.getElementById('inp-size').value;
+  const timeRaw = document.getElementById('inp-time').value.trim();
+  const msgEl   = document.getElementById('form-msg');
+
+  msgEl.className = 'form-msg';
+  msgEl.textContent = '';
+
+  const timeNum = parseFloat(timeRaw);
+  if (!timeRaw || isNaN(timeNum) || timeNum < 0) {
+    msgEl.className = 'form-msg err';
+    msgEl.textContent = 'Podaj prawidłową liczbę dni (≥ 0).';
+    return;
+  }
+
+  RAW.push({ size: sizeVal, time: timeNum });
+  renderAll();
+
+  document.getElementById('inp-time').value = '';
+  msgEl.className = 'form-msg ok';
+  msgEl.textContent = `Dodano: ${SIZES[sizeVal].label}, ${timeNum} dni.`;
+  setTimeout(()=>{ msgEl.className='form-msg'; }, 3000);
 });
-legendEl.innerHTML+=`<span class="legend-item"><span class="legend-dash" style="border-color:#ffffff55"></span>&nbsp;Linia percentyla (P50/P85/P95)</span>`;
 </script>
 </body>
 </html>
