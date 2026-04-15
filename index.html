@@ -1,1 +1,266 @@
-test
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard – Histogram Czasów Realizacji</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+      color: #f0f6fc;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #8b949e;
+      margin-bottom: 28px;
+    }
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 18px 20px;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .card-icon { font-size: 1.7rem; line-height: 1; }
+    .card-title { font-size: 1rem; font-weight: 600; }
+    .card-count {
+      margin-left: auto;
+      background: #21262d;
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 0.75rem;
+      color: #8b949e;
+    }
+    .percentiles { display: flex; gap: 8px; }
+    .pct-badge {
+      flex: 1;
+      border-radius: 8px;
+      padding: 10px 6px;
+      text-align: center;
+      border: 1px solid transparent;
+    }
+    .pct-badge .label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0.7;
+      margin-bottom: 4px;
+    }
+    .pct-badge .value { font-size: 1.2rem; font-weight: 700; }
+    .pct-badge .unit  { font-size: 0.7rem; opacity: 0.6; margin-left: 2px; }
+    .size-s .card-title { color: #39d353; }
+    .size-s .pct-badge  { background: #12261e; border-color: #39d35344; }
+    .size-s .pct-badge .value { color: #39d353; }
+    .size-m .card-title { color: #58a6ff; }
+    .size-m .pct-badge  { background: #0d1d35; border-color: #58a6ff44; }
+    .size-m .pct-badge .value { color: #58a6ff; }
+    .size-l .card-title { color: #f78166; }
+    .size-l .pct-badge  { background: #2a1010; border-color: #f7816644; }
+    .size-l .pct-badge .value { color: #f78166; }
+    .chart-container {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px 24px 16px;
+    }
+    .chart-container canvas { max-height: 420px; }
+    .chart-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #c9d1d9;
+      margin-bottom: 14px;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+      margin-top: 14px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: #c9d1d9;
+    }
+    .legend-dot  { width:12px; height:12px; border-radius:3px; }
+    .legend-dash { width:22px; height:2px; border-top:2px dashed; }
+  </style>
+</head>
+<body>
+
+<h1>📊 Histogram Czasów Realizacji</h1>
+<p class="subtitle">Analiza czasów realizacji według rozmiaru zamówienia</p>
+
+<div class="cards-grid" id="cards"></div>
+
+<div class="chart-container">
+  <div class="chart-title">Rozkład czasów realizacji (minuty) — podział na rozmiar</div>
+  <canvas id="histChart"></canvas>
+  <div class="legend" id="legend"></div>
+</div>
+
+<script>
+const RAW = [
+  {size:'S',time:49},{size:'S',time:48},{size:'S',time:87},
+  {size:'M',time:57},{size:'M',time:148},{size:'S',time:53},
+  {size:'S',time:45},{size:'M',time:145},{size:'L',time:105},
+  {size:'S',time:5},{size:'L',time:163},{size:'S',time:43},
+  {size:'M',time:415},{size:'L',time:123},{size:'M',time:103},
+  {size:'L',time:104},{size:'L',time:302},{size:'L',time:158},
+  {size:'L',time:98},{size:'S',time:52},{size:'M',time:95},
+  {size:'S',time:70},{size:'M',time:95},{size:'M',time:101},
+  {size:'M',time:57},{size:'M',time:57},{size:'S',time:53},
+  {size:'L',time:137},{size:'S',time:73},{size:'M',time:60},
+  {size:'S',time:126},{size:'M',time:57},{size:'L',time:124},
+  {size:'M',time:75},{size:'M',time:89},{size:'S',time:44},
+];
+
+const SIZES = {
+  S:{ label:'S \u2013 Small',  icon:'\u26A1', color:'#39d353', bgAlpha:'55' },
+  M:{ label:'M \u2013 Medium', icon:'\uD83D\uDCE6', color:'#58a6ff', bgAlpha:'55' },
+  L:{ label:'L \u2013 Large',  icon:'\uD83C\uDFD7\uFE0F', color:'#f78166', bgAlpha:'55' },
+};
+
+function pct(arr, p) {
+  const s = [...arr].sort((a,b)=>a-b);
+  const idx = p/100*(s.length-1);
+  const lo=Math.floor(idx), hi=Math.ceil(idx);
+  return Math.round(s[lo]+(idx-lo)*(s[hi]-s[lo]));
+}
+
+const grouped = {};
+RAW.forEach(({size,time})=>{ if(!grouped[size]) grouped[size]=[]; grouped[size].push(time); });
+
+const stats = {};
+Object.entries(grouped).forEach(([s,times])=>{
+  stats[s]={ times, count:times.length, p50:pct(times,50), p85:pct(times,85), p95:pct(times,95) };
+});
+
+const BIN_WIDTH=50, MAX_TIME=450;
+const bins=[];
+for(let lo=0;lo<MAX_TIME;lo+=BIN_WIDTH) bins.push({lo,hi:lo+BIN_WIDTH,label:`${lo}\u2013${lo+BIN_WIDTH}`});
+
+function countBin(times,lo,hi){ return times.filter(t=>t>=lo&&t<hi).length; }
+
+// Stat cards
+const cardsEl=document.getElementById('cards');
+['S','M','L'].forEach(s=>{
+  const cfg=SIZES[s], st=stats[s], cls=`size-${s.toLowerCase()}`;
+  cardsEl.innerHTML+=`
+    <div class="card ${cls}">
+      <div class="card-header">
+        <span class="card-icon">${cfg.icon}</span>
+        <span class="card-title">${cfg.label}</span>
+        <span class="card-count">${st.count} zam&oacute;wie&#324;</span>
+      </div>
+      <div class="percentiles">
+        <div class="pct-badge"><div class="label">P50</div><div class="value">${st.p50}<span class="unit">min</span></div></div>
+        <div class="pct-badge"><div class="label">P85</div><div class="value">${st.p85}<span class="unit">min</span></div></div>
+        <div class="pct-badge"><div class="label">P95</div><div class="value">${st.p95}<span class="unit">min</span></div></div>
+      </div>
+    </div>`;
+});
+
+// Chart datasets
+const datasets=['S','M','L'].map(s=>({
+  label: SIZES[s].label,
+  data: bins.map(b=>countBin(grouped[s],b.lo,b.hi)),
+  backgroundColor: SIZES[s].color+SIZES[s].bgAlpha,
+  borderColor: SIZES[s].color,
+  borderWidth:2, borderRadius:4,
+}));
+
+// Percentile annotations
+function binIndexOf(m){ return bins.findIndex(b=>m>=b.lo&&m<b.hi); }
+const yOffsets={S_p50:-18,S_p85:-36,S_p95:-54,M_p50:0,M_p85:18,M_p95:36,L_p50:18,L_p85:36,L_p95:54};
+const dashMap={p50:[6,3],p85:[4,4],p95:[2,3]};
+const annotations={};
+['S','M','L'].forEach(s=>{
+  const color=SIZES[s].color, st=stats[s];
+  [['p50',st.p50],['p85',st.p85],['p95',st.p95]].forEach(([key,val])=>{
+    annotations[`${s}_${key}`]={
+      type:'line', scaleID:'x', value:binIndexOf(val),
+      borderColor:color, borderWidth:1.5, borderDash:dashMap[key],
+      label:{
+        display:true, content:`${s} ${key.toUpperCase()} ${val}m`,
+        position:'start', backgroundColor:'#0d1117cc', color,
+        font:{size:10,weight:'600'}, padding:{x:5,y:3},
+        yAdjust:yOffsets[`${s}_${key}`]??0,
+      },
+    };
+  });
+});
+
+// chartjs-plugin-annotation (CDN/UMD build) auto-registers with Chart.js on load
+const ctx=document.getElementById('histChart').getContext('2d');
+new Chart(ctx,{
+  type:'bar',
+  data:{ labels:bins.map(b=>b.label), datasets },
+  options:{
+    responsive:true,
+    interaction:{mode:'index',intersect:false},
+    plugins:{
+      legend:{display:false},
+      tooltip:{
+        backgroundColor:'#1c2128', borderColor:'#30363d', borderWidth:1,
+        titleColor:'#c9d1d9', bodyColor:'#8b949e',
+        callbacks:{
+          title:items=>`\u23F1 ${items[0].label} min`,
+          label:item=>` ${SIZES[['S','M','L'][item.datasetIndex]].icon} ${item.dataset.label}: ${item.raw} zam.`,
+        },
+      },
+      annotation:{annotations},
+    },
+    scales:{
+      x:{
+        stacked:false, grid:{color:'#21262d'},
+        ticks:{color:'#8b949e',font:{size:11}},
+        title:{display:true,text:'Czas realizacji (minuty)',color:'#8b949e',font:{size:12}},
+      },
+      y:{
+        beginAtZero:true, grid:{color:'#21262d'},
+        ticks:{color:'#8b949e',font:{size:11},stepSize:1},
+        title:{display:true,text:'Liczba zam\u00F3wie\u0144',color:'#8b949e',font:{size:12}},
+      },
+    },
+  },
+});
+
+// Legend
+const legendEl=document.getElementById('legend');
+['S','M','L'].forEach(s=>{
+  legendEl.innerHTML+=`<span class="legend-item"><span class="legend-dot" style="background:${SIZES[s].color}88;border:2px solid ${SIZES[s].color}"></span>${SIZES[s].icon} ${SIZES[s].label}</span>`;
+});
+legendEl.innerHTML+=`<span class="legend-item"><span class="legend-dash" style="border-color:#ffffff55"></span>&nbsp;Linia percentyla (P50/P85/P95)</span>`;
+</script>
+</body>
+</html>
