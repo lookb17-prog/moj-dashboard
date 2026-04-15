@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scatterplot – Czasy Realizacji</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+      color: #f0f6fc;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #8b949e;
+      margin-bottom: 28px;
+    }
+
+    /* ── Cards ─────────────────────────────────────── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 18px 20px;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .card-icon { font-size: 1.7rem; line-height: 1; }
+    .card-title { font-size: 1rem; font-weight: 600; }
+    .card-count {
+      margin-left: auto;
+      background: #21262d;
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 0.75rem;
+      color: #8b949e;
+    }
+    .percentiles { display: flex; gap: 8px; }
+    .pct-badge {
+      flex: 1;
+      border-radius: 8px;
+      padding: 10px 6px;
+      text-align: center;
+      border: 1px solid transparent;
+    }
+    .pct-badge .label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0.7;
+      margin-bottom: 4px;
+    }
+    .pct-badge .value { font-size: 1.2rem; font-weight: 700; }
+    .pct-badge .unit  { font-size: 0.7rem; opacity: 0.6; margin-left: 2px; }
+
+    .size-s .card-title { color: #39d353; }
+    .size-s .pct-badge  { background: #12261e; border-color: #39d35344; }
+    .size-s .pct-badge .value { color: #39d353; }
+    .size-m .card-title { color: #58a6ff; }
+    .size-m .pct-badge  { background: #0d1d35; border-color: #58a6ff44; }
+    .size-m .pct-badge .value { color: #58a6ff; }
+    .size-l .card-title { color: #f78166; }
+    .size-l .pct-badge  { background: #2a1010; border-color: #f7816644; }
+    .size-l .pct-badge .value { color: #f78166; }
+
+    /* ── Overall summary ────────────────────────────── */
+    .summary-bar {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 28px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+    .summary-bar .sum-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #c9d1d9;
+      margin-right: 4px;
+    }
+    .sum-badge {
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 8px 14px;
+      text-align: center;
+      min-width: 90px;
+    }
+    .sum-badge .slabel {
+      font-size: 0.67rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #8b949e;
+      margin-bottom: 3px;
+    }
+    .sum-badge .svalue {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #e6edf3;
+    }
+    .sum-badge .sunit { font-size: 0.7rem; opacity: 0.55; margin-left: 2px; }
+    .sum-badge.p50  { border-color: #c9d1d944; }
+    .sum-badge.p50 .svalue  { color: #c9d1d9; }
+    .sum-badge.p85  { border-color: #d2a87944; }
+    .sum-badge.p85 .svalue  { color: #d2a879; }
+    .sum-badge.p95  { border-color: #f7816644; }
+    .sum-badge.p95 .svalue  { color: #f78166; }
+
+    /* ── Chart ──────────────────────────────────────── */
+    .chart-container {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px 24px 16px;
+      margin-bottom: 28px;
+    }
+    .chart-container canvas { max-height: 480px; }
+    .chart-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #c9d1d9;
+      margin-bottom: 14px;
+    }
+
+    /* ── Legend ─────────────────────────────────────── */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+      margin-top: 14px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: #c9d1d9;
+    }
+    .legend-dot  { width: 12px; height: 12px; border-radius: 50%; }
+    .legend-dash { width: 22px; height: 2px; border-top: 2px dashed; }
+
+    /* ── Form ───────────────────────────────────────── */
+    .form-container {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 18px 24px;
+      margin-bottom: 28px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .form-container legend {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #c9d1d9;
+      margin-bottom: 12px;
+      width: 100%;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .form-group label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #8b949e;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .form-group input, .form-group select {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 7px;
+      color: #e6edf3;
+      font-size: 0.92rem;
+      padding: 7px 12px;
+      outline: none;
+      min-width: 120px;
+      transition: border-color 0.15s;
+    }
+    .form-group input[type="date"] {
+      color-scheme: dark;
+    }
+    .form-group input:focus, .form-group select:focus {
+      border-color: #58a6ff;
+    }
+    .form-group select option { background: #161b22; }
+    .btn-add {
+      background: #238636;
+      border: 1px solid #2ea043;
+      border-radius: 7px;
+      color: #fff;
+      font-size: 0.92rem;
+      font-weight: 600;
+      padding: 8px 20px;
+      cursor: pointer;
+      transition: background 0.15s;
+      align-self: flex-end;
+    }
+    .btn-add:hover { background: #2ea043; }
+    .form-msg {
+      font-size: 0.8rem;
+      padding: 5px 10px;
+      border-radius: 6px;
+      display: none;
+      align-self: flex-end;
+    }
+    .form-msg.ok  { display: block; background: #12261e; color: #39d353; border: 1px solid #39d35344; }
+    .form-msg.err { display: block; background: #2a1010; color: #f78166; border: 1px solid #f7816644; }
+
+    /* ── Toggle buttons ─────────────────────────────── */
+    .btn-toggle {
+      margin-left: auto;
+      background: none;
+      border: 1px solid #30363d;
+      border-radius: 20px;
+      padding: 3px 11px;
+      font-size: 0.73rem;
+      color: #8b949e;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      line-height: 1.4;
+    }
+    .btn-toggle:hover { background: #21262d; color: #c9d1d9; }
+    .card.hidden-category { opacity: 0.38; }
+
+    /* ── Modal ──────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #000000bb;
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 14px;
+      padding: 24px 28px;
+      min-width: 320px;
+      max-width: 480px;
+      width: 90%;
+    }
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #f0f6fc;
+      margin-bottom: 4px;
+    }
+    .modal-subtitle {
+      font-size: 0.8rem;
+      color: #8b949e;
+      margin-bottom: 16px;
+    }
+    .modal-entry {
+      background: #21262d;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+      font-size: 0.88rem;
+      color: #c9d1d9;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-entry-info { display: flex; flex-direction: column; gap: 2px; }
+    .modal-entry-detail { font-size: 0.75rem; color: #8b949e; }
+    .btn-delete {
+      background: #3d1a1a;
+      border: 1px solid #f7816644;
+      border-radius: 6px;
+      color: #f78166;
+      font-size: 0.8rem;
+      padding: 4px 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-delete:hover { background: #5a2020; }
+    .modal-close {
+      margin-top: 16px;
+      width: 100%;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 7px;
+      color: #c9d1d9;
+      font-size: 0.9rem;
+      padding: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .modal-close:hover { background: #30363d; }
+    .chart-hint {
+      font-size: 0.75rem;
+      color: #8b949e;
+      text-align: right;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>📈 Scatterplot Czasów Realizacji</h1>
+<p class="subtitle">Czasy realizacji według daty ukończenia i rozmiaru zamówienia</p>
+
+<!-- Add form -->
+<div class="form-container">
+  <legend>➕ Dodaj nowy wpis</legend>
+  <div class="form-group">
+    <label for="inp-date">Data ukończenia</label>
+    <input id="inp-date" type="date" />
+  </div>
+  <div class="form-group">
+    <label for="inp-size">Rozmiar</label>
+    <select id="inp-size">
+      <option value="S">S – Small</option>
+      <option value="M">M – Medium</option>
+      <option value="L">L – Large</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label for="inp-time">Czas realizacji (dni)</label>
+    <input id="inp-time" type="number" min="0" step="1" placeholder="np. 45" />
+  </div>
+  <button class="btn-add" id="btn-add">Dodaj</button>
+  <span class="form-msg" id="form-msg"></span>
+</div>
+
+<!-- Per-size summary cards -->
+<div class="cards-grid" id="cards"></div>
+
+<!-- Overall summary bar -->
+<div class="summary-bar" id="summary-bar"></div>
+
+<!-- Scatter chart -->
+<div class="chart-container">
+  <div class="chart-title">Czasy realizacji w czasie — podział na rozmiar zamówienia</div>
+  <canvas id="scatterChart"></canvas>
+  <div class="legend" id="legend"></div>
+  <div class="chart-hint">💡 Kliknij na punkt, aby zobaczyć szczegóły i usunąć wpis</div>
+</div>
+
+<!-- Delete modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-subtitle" id="modal-subtitle"></div>
+    <div id="modal-body"></div>
+    <button class="modal-close" id="modal-close">Zamknij</button>
+  </div>
+</div>
+
+<script>
+let RAW = [
+  {date:'15.07.2024',size:'S',time:49},
+  {date:'22.08.2024',size:'S',time:48},
+  {date:'10.09.2024',size:'S',time:87},
+  {date:'25.09.2024',size:'M',time:57},
+  {date:'5.10.2024', size:'M',time:148},
+  {date:'14.10.2024',size:'S',time:53},
+  {date:'28.10.2024',size:'S',time:45},
+  {date:'18.11.2024',size:'M',time:145},
+  {date:'4.12.2024', size:'L',time:105},
+  {date:'8.01.2025', size:'S',time:5},
+  {date:'20.01.2025',size:'L',time:163},
+  {date:'14.02.2025',size:'S',time:43},
+  {date:'26.02.2025',size:'M',time:415},
+  {date:'15.03.2025',size:'L',time:123},
+  {date:'10.04.2025',size:'M',time:103},
+  {date:'5.05.2025', size:'L',time:104},
+  {date:'12.06.2025',size:'L',time:302},
+  {date:'25.06.2025',size:'L',time:158},
+  {date:'2.07.2025', size:'L',time:98},
+  {date:'11.07.2025',size:'S',time:52},
+  {date:'18.07.2025',size:'M',time:95},
+  {date:'29.07.2025',size:'S',time:70},
+  {date:'3.08.2025', size:'M',time:95},
+  {date:'14.08.2025',size:'M',time:101},
+  {date:'21.08.2025',size:'M',time:57},
+  {date:'29.08.2025',size:'M',time:57},
+  {date:'8.09.2025', size:'S',time:53},
+  {date:'22.09.2025',size:'L',time:137},
+  {date:'4.10.2025', size:'S',time:73},
+  {date:'12.10.2025',size:'M',time:60},
+  {date:'19.10.2025',size:'S',time:126},
+  {date:'27.10.2025',size:'M',time:57},
+  {date:'5.11.2025', size:'L',time:124},
+  {date:'15.11.2025',size:'M',time:75},
+  {date:'25.11.2025',size:'M',time:89},
+  {date:'10.12.2025',size:'S',time:44},
+];
+
+const SIZES = {
+  S: { label: 'S \u2013 Small',  icon: '\u26A1',             color: '#39d353' },
+  M: { label: 'M \u2013 Medium', icon: '\uD83D\uDCE6',       color: '#58a6ff' },
+  L: { label: 'L \u2013 Large',  icon: '\uD83C\uDFD7\uFE0F', color: '#f78166' },
+};
+
+// Percentile line colors
+const PCT_COLORS = {
+  p50: '#c9d1d9',
+  p85: '#d2a879',
+  p95: '#f78166',
+};
+
+const hiddenSizes = new Set();
+let chartInstance = null;
+
+function parseDate(str) {
+  const parts = str.split('.');
+  return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+}
+
+function formatDateISO(str) {
+  const d = parseDate(str);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function pct(arr, p) {
+  if (!arr.length) return 0;
+  const s = [...arr].sort((a, b) => a - b);
+  const idx = p / 100 * (s.length - 1);
+  const lo = Math.floor(idx), hi = Math.ceil(idx);
+  return parseFloat((s[lo] + (idx - lo) * (s[hi] - s[lo])).toFixed(1));
+}
+
+function renderAll() {
+  const grouped = { S: [], M: [], L: [] };
+  RAW.forEach(({ size, time }) => grouped[size].push(time));
+
+  // Per-size stats
+  const stats = {};
+  ['S', 'M', 'L'].forEach(s => {
+    const times = grouped[s];
+    stats[s] = {
+      count: times.length,
+      p50: pct(times, 50),
+      p85: pct(times, 85),
+      p95: pct(times, 95),
+    };
+  });
+
+  // Overall stats (visible sizes only for percentile lines)
+  const allTimes = RAW.map(r => r.time);
+  const overallStats = {
+    count: allTimes.length,
+    p50: pct(allTimes, 50),
+    p85: pct(allTimes, 85),
+    p95: pct(allTimes, 95),
+  };
+
+  // ── Summary cards ───────────────────────────────────────
+  const cardsEl = document.getElementById('cards');
+  cardsEl.innerHTML = '';
+  ['S', 'M', 'L'].forEach(s => {
+    const cfg = SIZES[s];
+    const st = stats[s];
+    const cls = `size-${s.toLowerCase()}`;
+    const isHidden = hiddenSizes.has(s);
+    const cardDiv = document.createElement('div');
+    cardDiv.className = `card ${cls}${isHidden ? ' hidden-category' : ''}`;
+    cardDiv.innerHTML = `
+      <div class="card-header">
+        <span class="card-icon">${cfg.icon}</span>
+        <span class="card-title">${cfg.label}</span>
+        <span class="card-count">${st.count} zam&oacute;wie&#324;</span>
+        <button class="btn-toggle" data-size="${s}" title="${isHidden ? 'Pokaż kategorię na wykresie' : 'Ukryj kategorię na wykresie'}">
+          ${isHidden ? '👁 Pokaż' : '🙈 Ukryj'}
+        </button>
+      </div>
+      <div class="percentiles">
+        <div class="pct-badge"><div class="label">Mediana</div><div class="value">${st.p50}<span class="unit">dni</span></div></div>
+        <div class="pct-badge"><div class="label">P85</div><div class="value">${st.p85}<span class="unit">dni</span></div></div>
+        <div class="pct-badge"><div class="label">P95</div><div class="value">${st.p95}<span class="unit">dni</span></div></div>
+      </div>`;
+    cardsEl.appendChild(cardDiv);
+    cardDiv.querySelector('.btn-toggle').addEventListener('click', () => {
+      if (hiddenSizes.has(s)) hiddenSizes.delete(s);
+      else hiddenSizes.add(s);
+      renderAll();
+    });
+  });
+
+  // ── Overall summary bar ─────────────────────────────────
+  const sumBar = document.getElementById('summary-bar');
+  sumBar.innerHTML = `
+    <span class="sum-title">📊 Łącznie</span>
+    <div class="sum-badge">
+      <div class="slabel">Zamówień</div>
+      <div class="svalue">${overallStats.count}</div>
+    </div>
+    <div class="sum-badge p50">
+      <div class="slabel">Mediana (P50)</div>
+      <div class="svalue">${overallStats.p50}<span class="sunit">dni</span></div>
+    </div>
+    <div class="sum-badge p85">
+      <div class="slabel">P85</div>
+      <div class="svalue">${overallStats.p85}<span class="sunit">dni</span></div>
+    </div>
+    <div class="sum-badge p95">
+      <div class="slabel">P95</div>
+      <div class="svalue">${overallStats.p95}<span class="sunit">dni</span></div>
+    </div>`;
+
+  // ── Chart datasets ──────────────────────────────────────
+  const datasets = ['S', 'M', 'L'].map(s => {
+    const cfg = SIZES[s];
+    const isHidden = hiddenSizes.has(s);
+    return {
+      label: cfg.label,
+      sizeKey: s,
+      data: RAW
+        .map((r, idx) => ({ ...r, _rawIdx: idx }))
+        .filter(r => r.size === s)
+        .map(r => ({ x: parseDate(r.date), y: r.time, _rawIdx: r._rawIdx, _date: r.date })),
+      backgroundColor: isHidden ? 'transparent' : cfg.color + 'cc',
+      borderColor: isHidden ? 'transparent' : cfg.color,
+      borderWidth: 1.5,
+      pointRadius: 7,
+      pointHoverRadius: 10,
+      hidden: isHidden,
+    };
+  });
+
+  // ── Percentile annotations (horizontal lines) ───────────
+  const annotations = {
+    line_p50: {
+      type: 'line',
+      yMin: overallStats.p50,
+      yMax: overallStats.p50,
+      borderColor: PCT_COLORS.p50 + 'aa',
+      borderWidth: 1.5,
+      borderDash: [6, 3],
+      label: {
+        display: true,
+        content: `Mediana (P50): ${overallStats.p50} dni`,
+        position: 'end',
+        backgroundColor: '#0d1117cc',
+        color: PCT_COLORS.p50,
+        font: { size: 10, weight: '600' },
+        padding: { x: 5, y: 3 },
+        yAdjust: -10,
+      },
+    },
+    line_p85: {
+      type: 'line',
+      yMin: overallStats.p85,
+      yMax: overallStats.p85,
+      borderColor: PCT_COLORS.p85 + 'aa',
+      borderWidth: 1.5,
+      borderDash: [4, 4],
+      label: {
+        display: true,
+        content: `P85: ${overallStats.p85} dni`,
+        position: 'end',
+        backgroundColor: '#0d1117cc',
+        color: PCT_COLORS.p85,
+        font: { size: 10, weight: '600' },
+        padding: { x: 5, y: 3 },
+        yAdjust: -10,
+      },
+    },
+    line_p95: {
+      type: 'line',
+      yMin: overallStats.p95,
+      yMax: overallStats.p95,
+      borderColor: PCT_COLORS.p95 + 'aa',
+      borderWidth: 1.5,
+      borderDash: [2, 3],
+      label: {
+        display: true,
+        content: `P95: ${overallStats.p95} dni`,
+        position: 'end',
+        backgroundColor: '#0d1117cc',
+        color: PCT_COLORS.p95,
+        font: { size: 10, weight: '600' },
+        padding: { x: 5, y: 3 },
+        yAdjust: -10,
+      },
+    },
+  };
+
+  // ── Build / rebuild chart ───────────────────────────────
+  if (chartInstance) chartInstance.destroy();
+
+  const ctx = document.getElementById('scatterChart').getContext('2d');
+  chartInstance = new Chart(ctx, {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true,
+      onClick(event, elements) {
+        if (!elements.length) return;
+        const el = elements[0];
+        const ds = chartInstance.data.datasets[el.datasetIndex];
+        const pt = ds.data[el.index];
+        if (pt == null) return;
+        openDeleteModal(pt._rawIdx);
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1c2128',
+          borderColor: '#30363d',
+          borderWidth: 1,
+          titleColor: '#c9d1d9',
+          bodyColor: '#8b949e',
+          callbacks: {
+            title: items => {
+              const pt = items[0].raw;
+              return `📅 ${pt._date}`;
+            },
+            label: item => {
+              const s = item.dataset.sizeKey;
+              return ` ${SIZES[s].icon} ${item.dataset.label}: ${item.raw.y} dni`;
+            },
+          },
+        },
+        annotation: { annotations },
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: {
+            unit: 'month',
+            tooltipFormat: 'dd.MM.yyyy',
+            displayFormats: { month: 'MMM yyyy' },
+          },
+          grid: { color: '#21262d' },
+          ticks: { color: '#8b949e', font: { size: 11 } },
+          title: { display: true, text: 'Data ukończenia', color: '#8b949e', font: { size: 12 } },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: '#21262d' },
+          ticks: { color: '#8b949e', font: { size: 11 } },
+          title: { display: true, text: 'Czas realizacji (dni)', color: '#8b949e', font: { size: 12 } },
+        },
+      },
+    },
+  });
+
+  // ── Legend ──────────────────────────────────────────────
+  const legendEl = document.getElementById('legend');
+  legendEl.innerHTML = '';
+  ['S', 'M', 'L'].forEach(s => {
+    const dimmed = hiddenSizes.has(s) ? 'opacity:0.35;' : '';
+    legendEl.innerHTML += `<span class="legend-item" style="${dimmed}">
+      <span class="legend-dot" style="background:${SIZES[s].color}cc;border:2px solid ${SIZES[s].color}"></span>
+      ${SIZES[s].icon} ${SIZES[s].label}
+    </span>`;
+  });
+  legendEl.innerHTML += `
+    <span class="legend-item">
+      <span class="legend-dash" style="border-color:${PCT_COLORS.p50}aa;border-style:dashed"></span>
+      &nbsp;Mediana (P50)
+    </span>
+    <span class="legend-item">
+      <span class="legend-dash" style="border-color:${PCT_COLORS.p85}aa;border-style:dashed"></span>
+      &nbsp;P85
+    </span>
+    <span class="legend-item">
+      <span class="legend-dash" style="border-color:${PCT_COLORS.p95}aa;border-style:dashed"></span>
+      &nbsp;P95
+    </span>`;
+}
+
+// ── Delete modal ───────────────────────────────────────────
+function openDeleteModal(rawIdx) {
+  const entry = RAW[rawIdx];
+  if (!entry) return;
+  const cfg = SIZES[entry.size];
+
+  document.getElementById('modal-title').textContent =
+    `${cfg.icon} ${cfg.label} — ${entry.date}`;
+  document.getElementById('modal-subtitle').textContent =
+    `Czas realizacji: ${entry.time} dni`;
+
+  const bodyEl = document.getElementById('modal-body');
+  bodyEl.innerHTML = `
+    <div class="modal-entry">
+      <div class="modal-entry-info">
+        <span>${cfg.icon} ${entry.time} dni</span>
+        <span class="modal-entry-detail">📅 ${entry.date} &nbsp;|&nbsp; Rozmiar: ${entry.size}</span>
+      </div>
+      <button class="btn-delete" id="btn-confirm-delete">🗑 Usuń wpis</button>
+    </div>`;
+
+  bodyEl.querySelector('#btn-confirm-delete').addEventListener('click', () => {
+    RAW.splice(rawIdx, 1);
+    closeModal();
+    renderAll();
+  });
+
+  document.getElementById('modal-overlay').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('active');
+}
+
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ── Add form ───────────────────────────────────────────────
+document.getElementById('btn-add').addEventListener('click', () => {
+  const dateVal = document.getElementById('inp-date').value;
+  const sizeVal = document.getElementById('inp-size').value;
+  const timeRaw = document.getElementById('inp-time').value.trim();
+  const msgEl   = document.getElementById('form-msg');
+
+  msgEl.className = 'form-msg';
+  msgEl.textContent = '';
+
+  if (!dateVal) {
+    msgEl.className = 'form-msg err';
+    msgEl.textContent = 'Podaj datę ukończenia.';
+    return;
+  }
+
+  const timeNum = parseInt(timeRaw, 10);
+  if (!timeRaw || isNaN(timeNum) || timeNum < 0) {
+    msgEl.className = 'form-msg err';
+    msgEl.textContent = 'Podaj prawidłową liczbę dni (≥ 0).';
+    return;
+  }
+
+  // Convert YYYY-MM-DD → D.M.YYYY
+  const [y, m, d] = dateVal.split('-');
+  const dateStr = `${parseInt(d)}.${parseInt(m)}.${y}`;
+
+  RAW.push({ date: dateStr, size: sizeVal, time: timeNum });
+  // Sort by date
+  RAW.sort((a, b) => parseDate(a.date) - parseDate(b.date));
+  renderAll();
+
+  document.getElementById('inp-date').value = '';
+  document.getElementById('inp-time').value = '';
+  msgEl.className = 'form-msg ok';
+  msgEl.textContent = `Dodano: ${SIZES[sizeVal].icon} ${SIZES[sizeVal].label}, ${dateStr}, ${timeNum} dni.`;
+  setTimeout(() => { msgEl.className = 'form-msg'; }, 3500);
+});
+
+// Initial render
+renderAll();
+</script>
+</body>
+</html>
