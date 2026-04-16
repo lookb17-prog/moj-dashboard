@@ -504,6 +504,12 @@
     <div class="chart-hint">💡 Kliknij na punkt, aby zobaczyć szczegóły i usunąć wpis</div>
   </div>
 
+  <div class="chart-container">
+    <div class="chart-title">PCB – Zakresy ruchome (Moving Range Chart)</div>
+    <canvas id="pcbMrChart"></canvas>
+    <div class="legend" id="pcb-mr-legend"></div>
+  </div>
+
   <!-- Modal – PCB -->
   <div class="modal-overlay" id="pcb-modal-overlay">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pcb-modal-title">
@@ -1195,6 +1201,7 @@ let PCB_RAW = [
 ];
 
 let pcbChartInstance = null;
+let pcbMrChartInstance = null;
 
 // Parse M.D.YYYY format (month.day.year) used in PCB CSV
 function parseDateMDY(str) {
@@ -1369,6 +1376,117 @@ function renderPCB() {
       <span class="legend-line" style="border-color:#39d353cc;border-top-style:dashed"></span>
       &nbsp;LNPL
     </span>` : ''}`;
+
+  renderPCBMR(sorted, mrBar);
+}
+
+function renderPCBMR(sorted, mrBar) {
+  const urlMR = 3.267 * mrBar;
+
+  // Build MR data points: MR_i = |x_i - x_{i-1}|, plotted at date of x_i
+  const mrData = [];
+  for (let i = 1; i < sorted.length; i++) {
+    mrData.push({
+      x: parseDateMDY(sorted[i].closed),
+      y: Math.abs(sorted[i].time - sorted[i - 1].time),
+      _id1: sorted[i - 1].id,
+      _id2: sorted[i].id,
+    });
+  }
+
+  const mrAnnotations = {
+    line_mrbar: {
+      type: 'line', yMin: mrBar, yMax: mrBar,
+      borderColor: '#58a6ffaa', borderWidth: 1.5, borderDash: [6, 3],
+      label: {
+        display: true, content: `mR̄ = ${mrBar.toFixed(1)} dni`,
+        position: 'end', backgroundColor: '#0d1117cc', color: '#58a6ff',
+        font: { size: 10, weight: '600' }, padding: { x: 5, y: 3 }, yAdjust: -10,
+      },
+    },
+    line_url: {
+      type: 'line', yMin: urlMR, yMax: urlMR,
+      borderColor: '#f78166cc', borderWidth: 2, borderDash: [4, 4],
+      label: {
+        display: true, content: `URL = ${urlMR.toFixed(1)} dni`,
+        position: 'end', backgroundColor: '#0d1117cc', color: '#f78166',
+        font: { size: 10, weight: '600' }, padding: { x: 5, y: 3 }, yAdjust: -10,
+      },
+    },
+  };
+
+  if (pcbMrChartInstance) pcbMrChartInstance.destroy();
+  const ctx = document.getElementById('pcbMrChart').getContext('2d');
+  pcbMrChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: [{
+        label: 'Zakres ruchomy (MR)',
+        data: mrData,
+        borderColor: '#d2a8ff',
+        backgroundColor: '#d2a8ff33',
+        borderWidth: 2,
+        pointRadius: 6,
+        pointHoverRadius: 9,
+        pointBackgroundColor: mrData.map(p => p.y > urlMR ? '#f78166' : '#d2a8ff'),
+        pointBorderColor:     mrData.map(p => p.y > urlMR ? '#f78166' : '#d2a8ff'),
+        tension: 0.2,
+        fill: false,
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1c2128', borderColor: '#30363d', borderWidth: 1,
+          titleColor: '#c9d1d9', bodyColor: '#8b949e',
+          callbacks: {
+            title: items => `📅 Ukończono: ${sorted.find(r => r.id === items[0].raw._id2)?.closed ?? ''}`,
+            label: item => {
+              const p = item.raw;
+              const flag = p.y > urlMR ? ' ⚠ powyżej URL' : '';
+              return ` #${p._id1}→#${p._id2}: MR = ${p.y} dni${flag}`;
+            },
+          },
+        },
+        annotation: { annotations: mrAnnotations },
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'month', tooltipFormat: 'dd.MM.yyyy', displayFormats: { month: 'MMM yyyy' } },
+          grid: { color: '#21262d' },
+          ticks: { color: '#8b949e', font: { size: 11 } },
+          title: { display: true, text: 'Data ukończenia', color: '#8b949e', font: { size: 12 } },
+        },
+        y: {
+          beginAtZero: true, grid: { color: '#21262d' },
+          ticks: { color: '#8b949e', font: { size: 11 } },
+          title: { display: true, text: 'Zakres ruchomy (dni)', color: '#8b949e', font: { size: 12 } },
+        },
+      },
+    },
+  });
+
+  // Legend
+  document.getElementById('pcb-mr-legend').innerHTML = `
+    <span class="legend-item">
+      <span class="legend-dot-circle" style="background:#d2a8ffcc;border:2px solid #d2a8ff"></span>
+      Zakres ruchomy (MR)
+    </span>
+    <span class="legend-item">
+      <span class="legend-dot-circle" style="background:#f78166;border:2px solid #f78166"></span>
+      Punkt powyżej URL
+    </span>
+    <span class="legend-item">
+      <span class="legend-line" style="border-color:#58a6ffaa;border-top-style:dashed"></span>
+      &nbsp;Średni zakres ruchomy (mR̄)
+    </span>
+    <span class="legend-item">
+      <span class="legend-line" style="border-color:#f78166cc;border-top-style:dashed"></span>
+      &nbsp;URL (3,267 × mR̄)
+    </span>`;
 }
 
 function openPCBModal(rawId) {
