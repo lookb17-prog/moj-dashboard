@@ -301,11 +301,25 @@
       white-space: nowrap;
     }
     .btn-delete:hover { background: #5a2020; }
-    .modal-empty {
-      text-align: center;
-      color: #8b949e;
-      font-size: 0.85rem;
-      padding: 16px 0;
+    /* ── XmR signal info box ────────────────────────── */
+    .signal-rules {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 0.82rem;
+      color: #c9d1d9;
+    }
+    .signal-rule {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .signal-swatch {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
     }
     .modal-close {
       margin-top: 16px;
@@ -543,21 +557,21 @@
   <!-- Signal rules info box -->
   <div class="chart-container" style="padding:16px 20px;">
     <div class="chart-title" style="margin-bottom:10px;">📖 Interpretacja sygnałów</div>
-    <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:0.82rem;color:#c9d1d9;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#f78166;flex-shrink:0"></span>
+    <div class="signal-rules">
+      <div class="signal-rule">
+        <span class="signal-swatch" style="background:#f78166"></span>
         <span><strong>Silny sygnał:</strong> 1 punkt poza UNPL/LNPL</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#ffa657;flex-shrink:0"></span>
+      <div class="signal-rule">
+        <span class="signal-swatch" style="background:#ffa657"></span>
         <span><strong>Umiarkowany sygnał:</strong> 2 z 3 kolejnych punktów poza 2/3 korytarza UNPL/LNPL</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#e3b341;flex-shrink:0"></span>
+      <div class="signal-rule">
+        <span class="signal-swatch" style="background:#e3b341"></span>
         <span><strong>Trwały, słaby sygnał:</strong> 3 z 5 kolejnych punktów poza 1/3 korytarza UNPL/LNPL</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#d2a8ff;flex-shrink:0"></span>
+      <div class="signal-rule">
+        <span class="signal-swatch" style="background:#d2a8ff"></span>
         <span><strong>Trwała zmiana:</strong> 8 kolejnych wartości po tej samej stronie średniej</span>
       </div>
     </div>
@@ -1790,7 +1804,7 @@ function xmrDetectSignals(values, stats) {
 
   // Rule 1 – Strong: 1 point outside UNPL / LNPL
   for (let i = 0; i < n; i++) {
-    if (values[i] > unpl || (lnpl > 0 && values[i] < lnpl)) {
+    if (values[i] > unpl || values[i] < lnpl) {
       signals[i] = Math.max(signals[i], 4);
     }
   }
@@ -1800,7 +1814,7 @@ function xmrDetectSignals(values, stats) {
     const win = [i - 2, i - 1, i];
     const outside = win.filter(j => Math.abs(values[j] - mean) > zone2_3);
     if (outside.length >= 2) {
-      outside.forEach(j => { signals[j] = Math.max(signals[j], 3); });
+      win.forEach(j => { signals[j] = Math.max(signals[j], 3); });
     }
   }
 
@@ -1809,7 +1823,7 @@ function xmrDetectSignals(values, stats) {
     const win = [i - 4, i - 3, i - 2, i - 1, i];
     const outside = win.filter(j => Math.abs(values[j] - mean) > zone1_3);
     if (outside.length >= 3) {
-      outside.forEach(j => { signals[j] = Math.max(signals[j], 2); });
+      win.forEach(j => { signals[j] = Math.max(signals[j], 2); });
     }
   }
 
