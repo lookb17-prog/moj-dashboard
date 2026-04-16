@@ -301,11 +301,25 @@
       white-space: nowrap;
     }
     .btn-delete:hover { background: #5a2020; }
-    .modal-empty {
-      text-align: center;
-      color: #8b949e;
-      font-size: 0.85rem;
-      padding: 16px 0;
+    /* ── XmR signal info box ────────────────────────── */
+    .signal-rules {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 0.82rem;
+      color: #c9d1d9;
+    }
+    .signal-rule {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .signal-swatch {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
     }
     .modal-close {
       margin-top: 16px;
@@ -381,6 +395,7 @@
   <button class="tab-btn active" data-tab="histogram">📊 Histogram</button>
   <button class="tab-btn" data-tab="scatter">📈 Scatterplot</button>
   <button class="tab-btn" data-tab="pcb">📉 PCB</button>
+  <button class="tab-btn" data-tab="xmr">⚡ XmR – Tempo</button>
 </div>
 
 <!-- ═══════════════ HISTOGRAM TAB ═══════════════ -->
@@ -522,6 +537,48 @@
 
 </div><!-- /tab-pcb -->
 
+<!-- ═══════════════ XmR TAB ═══════════════ -->
+<div class="tab-content" id="tab-xmr">
+
+  <div class="summary-bar" id="xmr-summary-bar"></div>
+
+  <div class="chart-container">
+    <div class="chart-title">XmR – Tygodniowe tempo dostarczania (X Chart)</div>
+    <canvas id="xmrChart"></canvas>
+    <div class="legend" id="xmr-legend"></div>
+  </div>
+
+  <div class="chart-container">
+    <div class="chart-title">XmR – Tygodniowe zakresy ruchome (MR Chart)</div>
+    <canvas id="xmrMrChart"></canvas>
+    <div class="legend" id="xmr-mr-legend"></div>
+  </div>
+
+  <!-- Signal rules info box -->
+  <div class="chart-container" style="padding:16px 20px;">
+    <div class="chart-title" style="margin-bottom:10px;">📖 Interpretacja sygnałów</div>
+    <div class="signal-rules">
+      <div class="signal-rule">
+        <span class="signal-swatch" style="background:#f78166"></span>
+        <span><strong>Silny sygnał:</strong> 1 punkt poza UNPL/LNPL</span>
+      </div>
+      <div class="signal-rule">
+        <span class="signal-swatch" style="background:#ffa657"></span>
+        <span><strong>Umiarkowany sygnał:</strong> 2 z 3 kolejnych punktów poza 2/3 korytarza UNPL/LNPL</span>
+      </div>
+      <div class="signal-rule">
+        <span class="signal-swatch" style="background:#e3b341"></span>
+        <span><strong>Trwały, słaby sygnał:</strong> 3 z 5 kolejnych punktów poza 1/3 korytarza UNPL/LNPL</span>
+      </div>
+      <div class="signal-rule">
+        <span class="signal-swatch" style="background:#d2a8ff"></span>
+        <span><strong>Trwała zmiana:</strong> 8 kolejnych wartości po tej samej stronie średniej</span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-xmr -->
+
 <script>
 // ─────────────────────────────────────────────────
 // Tab switching
@@ -532,9 +589,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-    // Lazy-init scatter chart when first shown
+    // Lazy-init charts when first shown
     if (btn.dataset.tab === 'scatter' && !scatterChartInstance) renderScatter();
     if (btn.dataset.tab === 'pcb' && !pcbChartInstance) renderPCB();
+    if (btn.dataset.tab === 'xmr' && !xmrChartInstance) renderXmR();
   });
 });
 
@@ -1582,6 +1640,499 @@ document.getElementById('pcb-btn-add').addEventListener('click', () => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeHistModal(); closeScatterModal(); closePCBModal(); }
 });
+
+// ═══════════════════════════════════════════════════
+// XmR (Tempo dostarczania – tygodniowe)
+// ═══════════════════════════════════════════════════
+const TEMPO_DAILY = [
+  {d:'07.01.2025',v:0},
+  {d:'08.01.2025',v:2},
+  {d:'09.01.2025',v:10},
+  {d:'10.01.2025',v:3},
+  {d:'11.01.2025',v:0},
+  {d:'12.01.2025',v:0},
+  {d:'13.01.2025',v:2},
+  {d:'14.01.2025',v:3},
+  {d:'15.01.2025',v:7},
+  {d:'16.01.2025',v:0},
+  {d:'17.01.2025',v:0},
+  {d:'18.01.2025',v:0},
+  {d:'19.01.2025',v:0},
+  {d:'20.01.2025',v:5},
+  {d:'21.01.2025',v:2},
+  {d:'22.01.2025',v:0},
+  {d:'23.01.2025',v:0},
+  {d:'24.01.2025',v:0},
+  {d:'25.01.2025',v:0},
+  {d:'26.01.2025',v:0},
+  {d:'27.01.2025',v:1},
+  {d:'28.01.2025',v:1},
+  {d:'29.01.2025',v:0},
+  {d:'30.01.2025',v:5},
+  {d:'31.01.2025',v:4},
+  {d:'01.02.2025',v:0},
+  {d:'02.02.2025',v:0},
+  {d:'03.02.2025',v:7},
+  {d:'04.02.2025',v:0},
+  {d:'05.02.2025',v:2},
+  {d:'06.02.2025',v:2},
+  {d:'07.02.2025',v:12},
+  {d:'08.02.2025',v:0},
+  {d:'09.02.2025',v:0},
+  {d:'10.02.2025',v:1},
+  {d:'11.02.2025',v:0},
+  {d:'12.02.2025',v:0},
+  {d:'13.02.2025',v:2},
+  {d:'14.02.2025',v:12},
+  {d:'15.02.2025',v:0},
+  {d:'16.02.2025',v:0},
+  {d:'17.02.2025',v:1},
+  {d:'18.02.2025',v:0},
+  {d:'19.02.2025',v:0},
+  {d:'20.02.2025',v:3},
+  {d:'21.02.2025',v:11},
+  {d:'22.02.2025',v:0},
+  {d:'23.02.2025',v:0},
+  {d:'24.02.2025',v:6},
+  {d:'25.02.2025',v:0},
+  {d:'26.02.2025',v:0},
+  {d:'27.02.2025',v:6},
+  {d:'28.02.2025',v:7},
+  {d:'01.03.2025',v:0},
+  {d:'02.03.2025',v:0},
+  {d:'03.03.2025',v:2},
+  {d:'04.03.2025',v:0},
+  {d:'05.03.2025',v:0},
+  {d:'06.03.2025',v:3},
+  {d:'07.03.2025',v:5},
+  {d:'08.03.2025',v:0},
+  {d:'09.03.2025',v:0},
+  {d:'10.03.2025',v:1},
+  {d:'11.03.2025',v:0},
+  {d:'12.03.2025',v:0},
+  {d:'13.03.2025',v:9},
+  {d:'14.03.2025',v:7},
+  {d:'15.03.2025',v:0},
+  {d:'16.03.2025',v:0},
+  {d:'17.03.2025',v:3},
+  {d:'18.03.2025',v:0},
+  {d:'19.03.2025',v:0},
+  {d:'20.03.2025',v:4},
+  {d:'21.03.2025',v:10},
+  {d:'22.03.2025',v:0},
+  {d:'23.03.2025',v:0},
+  {d:'24.03.2025',v:1},
+  {d:'25.03.2025',v:0},
+  {d:'26.03.2025',v:0},
+  {d:'27.03.2025',v:5},
+  {d:'28.03.2025',v:1},
+  {d:'29.03.2025',v:0},
+  {d:'30.03.2025',v:0},
+  {d:'31.03.2025',v:2},
+  {d:'01.04.2025',v:0},
+  {d:'02.04.2025',v:0},
+  {d:'03.04.2025',v:2},
+  {d:'04.04.2025',v:11},
+  {d:'05.04.2025',v:0},
+  {d:'06.04.2025',v:0},
+  {d:'07.04.2025',v:1},
+  {d:'08.04.2025',v:0},
+  {d:'09.04.2025',v:0},
+  {d:'10.04.2025',v:5},
+  {d:'11.04.2025',v:2},
+  {d:'12.04.2025',v:0},
+  {d:'13.04.2025',v:0},
+  {d:'14.04.2025',v:1},
+  {d:'15.04.2025',v:0},
+  {d:'16.04.2025',v:0},
+  {d:'17.04.2025',v:4},
+  {d:'18.04.2025',v:7},
+  {d:'19.04.2025',v:0},
+];
+
+let xmrChartInstance = null;
+let xmrMrChartInstance = null;
+
+function xmrAggregateWeekly(daily) {
+  const weeks = {};
+  daily.forEach(({ d, v }) => {
+    const [dd, mm, yyyy] = d.split('.').map(Number);
+    const dt = new Date(yyyy, mm - 1, dd);
+    const dow = dt.getDay(); // 0=Sun
+    const daysToMon = (dow + 6) % 7;
+    const monday = new Date(dt);
+    monday.setDate(dt.getDate() - daysToMon);
+    const key = monday.toISOString().slice(0, 10);
+    if (!weeks[key]) weeks[key] = { date: monday, sum: 0, label: monday.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' }) };
+    weeks[key].sum += v;
+  });
+  return Object.values(weeks).sort((a, b) => a.date - b.date);
+}
+
+function xmrCalcStats(values) {
+  const n = values.length;
+  if (n === 0) return { mean: 0, mrBar: 0, unpl: 0, lnpl: 0, url: 0, medianDR: 0, medianMR: 0, mrs: [] };
+  const mean = values.reduce((a, b) => a + b, 0) / n;
+  const mrs = [];
+  for (let i = 1; i < n; i++) mrs.push(Math.abs(values[i] - values[i - 1]));
+  const mrBar = mrs.length ? mrs.reduce((a, b) => a + b, 0) / mrs.length : 0;
+  const unpl = mean + 2.66 * mrBar;
+  const lnpl = mean - 2.66 * mrBar;
+  const url = 3.267 * mrBar;
+
+  const sortedV = [...values].sort((a, b) => a - b);
+  const medianDR = n % 2 !== 0
+    ? sortedV[Math.floor(n / 2)]
+    : (sortedV[n / 2 - 1] + sortedV[n / 2]) / 2;
+  const sortedMR = [...mrs].sort((a, b) => a - b);
+  const nm = sortedMR.length;
+  const medianMR = nm === 0 ? 0
+    : nm % 2 !== 0 ? sortedMR[Math.floor(nm / 2)]
+    : (sortedMR[nm / 2 - 1] + sortedMR[nm / 2]) / 2;
+
+  return { mean, mrBar, unpl, lnpl, url, medianDR, medianMR, mrs };
+}
+
+// Returns signal level array for each data point: 0=none, 1=persistent, 2=weak, 3=moderate, 4=strong
+function xmrDetectSignals(values, stats) {
+  const { mean, mrBar, unpl, lnpl } = stats;
+  const n = values.length;
+  const halfRange = 2.66 * mrBar;
+  const zone1_3 = halfRange / 3;
+  const zone2_3 = (halfRange * 2) / 3;
+  const signals = new Array(n).fill(0);
+
+  // Rule 1 – Strong: 1 point outside UNPL / LNPL
+  for (let i = 0; i < n; i++) {
+    if (values[i] > unpl || values[i] < lnpl) {
+      signals[i] = Math.max(signals[i], 4);
+    }
+  }
+
+  // Rule 2 – Moderate: 2 of 3 consecutive points outside 2/3 zone
+  for (let i = 2; i < n; i++) {
+    const win = [i - 2, i - 1, i];
+    const outside = win.filter(j => Math.abs(values[j] - mean) > zone2_3);
+    if (outside.length >= 2) {
+      win.forEach(j => { signals[j] = Math.max(signals[j], 3); });
+    }
+  }
+
+  // Rule 3 – Weak: 3 of 5 consecutive points outside 1/3 zone
+  for (let i = 4; i < n; i++) {
+    const win = [i - 4, i - 3, i - 2, i - 1, i];
+    const outside = win.filter(j => Math.abs(values[j] - mean) > zone1_3);
+    if (outside.length >= 3) {
+      win.forEach(j => { signals[j] = Math.max(signals[j], 2); });
+    }
+  }
+
+  // Rule 4 – Persistent change: 8+ consecutive values on same side of mean
+  let runStart = 0;
+  let runSide = values[0] >= mean ? 1 : -1;
+  for (let i = 1; i <= n; i++) {
+    const side = i < n ? (values[i] >= mean ? 1 : -1) : 0;
+    if (side !== runSide || i === n) {
+      if (i - runStart >= 8) {
+        for (let j = runStart; j < i; j++) signals[j] = Math.max(signals[j], 1);
+      }
+      runStart = i;
+      runSide = side;
+    }
+  }
+
+  return signals;
+}
+
+function xmrSignalColor(level) {
+  if (level === 4) return '#f78166'; // strong  – red
+  if (level === 3) return '#ffa657'; // moderate – orange
+  if (level === 2) return '#e3b341'; // weak     – yellow
+  if (level === 1) return '#d2a8ff'; // persistent – purple
+  return '#58a6ff';                  // normal   – blue
+}
+
+function renderXmR() {
+  const weekly = xmrAggregateWeekly(TEMPO_DAILY);
+  const values = weekly.map(w => w.sum);
+  const stats = xmrCalcStats(values);
+  const { mean, mrBar, unpl, lnpl, url, medianDR, medianMR, mrs } = stats;
+  const signals = xmrDetectSignals(values, stats);
+  const halfRange = 2.66 * mrBar;
+
+  // ── Summary bar ────────────────────────────────────
+  const sumBar = document.getElementById('xmr-summary-bar');
+  sumBar.innerHTML = `
+    <span class="sum-title">⚡ XmR – Tempo tygodniowe</span>
+    <div class="sum-badge"><div class="slabel">Tygodni</div><div class="svalue">${weekly.length}</div></div>
+    <div class="sum-badge p50"><div class="slabel">Średnia (X̄)</div><div class="svalue">${mean.toFixed(1)}<span class="sunit">/tydz.</span></div></div>
+    <div class="sum-badge p50" style="border-color:#d2a8ff44"><div class="slabel">Mediana DR</div><div class="svalue" style="color:#d2a8ff">${medianDR.toFixed(1)}<span class="sunit">/tydz.</span></div></div>
+    <div class="sum-badge"><div class="slabel" style="color:#f78166">UNPL</div><div class="svalue" style="color:#f78166">${unpl.toFixed(1)}<span class="sunit">/tydz.</span></div></div>
+    ${lnpl > 0 ? `<div class="sum-badge"><div class="slabel" style="color:#39d353">LNPL</div><div class="svalue" style="color:#39d353">${lnpl.toFixed(1)}<span class="sunit">/tydz.</span></div></div>` : ''}
+    <div class="sum-badge"><div class="slabel">Śr. zakres (mR̄)</div><div class="svalue">${mrBar.toFixed(1)}</div></div>
+    <div class="sum-badge" style="border-color:#d2a8ff44"><div class="slabel">Mediana MR</div><div class="svalue" style="color:#d2a8ff">${medianMR.toFixed(1)}</div></div>`;
+
+  // ── X chart data ───────────────────────────────────
+  const xChartData = weekly.map((w, i) => ({
+    x: w.date,
+    y: w.sum,
+    _label: w.label,
+    _signal: signals[i],
+  }));
+
+  const xAnnotations = {
+    xmr_mean: {
+      type: 'line', yMin: mean, yMax: mean,
+      borderColor: '#58a6ffaa', borderWidth: 1.5, borderDash: [6, 3],
+      label: {
+        display: true, content: `X̄ = ${mean.toFixed(1)}`,
+        position: 'end', backgroundColor: '#0d1117cc', color: '#58a6ff',
+        font: { size: 10, weight: '600' }, padding: { x: 5, y: 3 }, yAdjust: -10,
+      },
+    },
+    xmr_median: {
+      type: 'line', yMin: medianDR, yMax: medianDR,
+      borderColor: '#d2a8ffaa', borderWidth: 1.5, borderDash: [3, 4],
+      label: {
+        display: true, content: `Med. DR = ${medianDR.toFixed(1)}`,
+        position: 'end', backgroundColor: '#0d1117cc', color: '#d2a8ff',
+        font: { size: 10, weight: '600' }, padding: { x: 5, y: 3 }, yAdjust: 10,
+      },
+    },
+    xmr_unpl: {
+      type: 'line', yMin: unpl, yMax: unpl,
+      borderColor: '#f78166cc', borderWidth: 2, borderDash: [4, 4],
+      label: {
+        display: true, content: `UNPL = ${unpl.toFixed(1)}`,
+        position: 'end', backgroundColor: '#0d1117cc', color: '#f78166',
+        font: { size: 10, weight: '600' }, padding: { x: 5, y: 3 }, yAdjust: -10,
+      },
+    },
+    xmr_zone23_u: {
+      type: 'line', yMin: mean + (halfRange * 2) / 3, yMax: mean + (halfRange * 2) / 3,
+      borderColor: '#ffa65755', borderWidth: 1, borderDash: [3, 6],
+      label: {
+        display: true, content: `2/3 UNPL`,
+        position: 'end', backgroundColor: '#0d1117cc', color: '#ffa657aa',
+        font: { size: 9 }, padding: { x: 4, y: 2 }, yAdjust: -8,
+      },
+    },
+    xmr_zone13_u: {
+      type: 'line', yMin: mean + halfRange / 3, yMax: mean + halfRange / 3,
+      borderColor: '#e3b34155', borderWidth: 1, borderDash: [2, 6],
+      label: {
+        display: true, content: `1/3 UNPL`,
+        position: 'end', backgroundColor: '#0d1117cc', color: '#e3b341aa',
+        font: { size: 9 }, padding: { x: 4, y: 2 }, yAdjust: -8,
+      },
+    },
+    xmr_zone13_l: {
+      type: 'line', yMin: Math.max(0, mean - halfRange / 3), yMax: Math.max(0, mean - halfRange / 3),
+      borderColor: '#e3b34155', borderWidth: 1, borderDash: [2, 6],
+      label: {
+        display: true, content: `1/3 LNPL`,
+        position: 'end', backgroundColor: '#0d1117cc', color: '#e3b341aa',
+        font: { size: 9 }, padding: { x: 4, y: 2 }, yAdjust: 8,
+      },
+    },
+    xmr_zone23_l: {
+      type: 'line', yMin: Math.max(0, mean - (halfRange * 2) / 3), yMax: Math.max(0, mean - (halfRange * 2) / 3),
+      borderColor: '#ffa65755', borderWidth: 1, borderDash: [3, 6],
+      label: {
+        display: true, content: `2/3 LNPL`,
+        position: 'end', backgroundColor: '#0d1117cc', color: '#ffa657aa',
+        font: { size: 9 }, padding: { x: 4, y: 2 }, yAdjust: 8,
+      },
+    },
+  };
+
+  if (lnpl > 0) {
+    xAnnotations.xmr_lnpl = {
+      type: 'line', yMin: lnpl, yMax: lnpl,
+      borderColor: '#39d353cc', borderWidth: 2, borderDash: [4, 4],
+      label: {
+        display: true, content: `LNPL = ${lnpl.toFixed(1)}`,
+        position: 'end', backgroundColor: '#0d1117cc', color: '#39d353',
+        font: { size: 10, weight: '600' }, padding: { x: 5, y: 3 }, yAdjust: 10,
+      },
+    };
+  }
+
+  if (xmrChartInstance) xmrChartInstance.destroy();
+  const ctxX = document.getElementById('xmrChart').getContext('2d');
+  xmrChartInstance = new Chart(ctxX, {
+    type: 'line',
+    data: {
+      datasets: [{
+        label: 'Tygodniowe DR',
+        data: xChartData,
+        borderColor: '#58a6ff',
+        backgroundColor: '#58a6ff22',
+        borderWidth: 2,
+        pointRadius: 7,
+        pointHoverRadius: 10,
+        pointBackgroundColor: xChartData.map(p => xmrSignalColor(p._signal)),
+        pointBorderColor: xChartData.map(p => xmrSignalColor(p._signal)),
+        tension: 0.2,
+        fill: false,
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1c2128', borderColor: '#30363d', borderWidth: 1,
+          titleColor: '#c9d1d9', bodyColor: '#8b949e',
+          callbacks: {
+            title: items => `📅 Tydzień od ${items[0].raw._label}`,
+            label: item => {
+              const lvl = item.raw._signal;
+              const tag = lvl === 4 ? ' 🔴 Silny sygnał' : lvl === 3 ? ' 🟠 Umiarkowany' : lvl === 2 ? ' 🟡 Słaby' : lvl === 1 ? ' 🟣 Trwała zmiana' : '';
+              return ` DR = ${item.raw.y}/tydzień${tag}`;
+            },
+          },
+        },
+        annotation: { annotations: xAnnotations },
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'week', tooltipFormat: 'dd.MM.yyyy', displayFormats: { week: 'dd.MM.yyyy' } },
+          grid: { color: '#21262d' },
+          ticks: { color: '#8b949e', font: { size: 11 } },
+          title: { display: true, text: 'Tydzień (data poniedziałku)', color: '#8b949e', font: { size: 12 } },
+        },
+        y: {
+          beginAtZero: true, grid: { color: '#21262d' },
+          ticks: { color: '#8b949e', font: { size: 11 } },
+          title: { display: true, text: 'Liczba zadań / tydzień (DR)', color: '#8b949e', font: { size: 12 } },
+        },
+      },
+    },
+  });
+
+  // X chart legend
+  document.getElementById('xmr-legend').innerHTML = `
+    <span class="legend-item"><span class="legend-dot-circle" style="background:#58a6ffcc;border:2px solid #58a6ff"></span>&nbsp;DR (brak sygnału)</span>
+    <span class="legend-item"><span class="legend-dot-circle" style="background:#f78166;border:2px solid #f78166"></span>&nbsp;Silny sygnał</span>
+    <span class="legend-item"><span class="legend-dot-circle" style="background:#ffa657;border:2px solid #ffa657"></span>&nbsp;Umiarkowany sygnał</span>
+    <span class="legend-item"><span class="legend-dot-circle" style="background:#e3b341;border:2px solid #e3b341"></span>&nbsp;Słaby sygnał</span>
+    <span class="legend-item"><span class="legend-dot-circle" style="background:#d2a8ff;border:2px solid #d2a8ff"></span>&nbsp;Trwała zmiana</span>
+    <span class="legend-item"><span class="legend-dash" style="border-color:#58a6ffaa;border-top-style:dashed"></span>&nbsp;X̄ (średnia)</span>
+    <span class="legend-item"><span class="legend-dash" style="border-color:#d2a8ffaa;border-top-style:dashed"></span>&nbsp;Mediana DR</span>
+    <span class="legend-item"><span class="legend-dash" style="border-color:#f78166cc;border-top-style:dashed"></span>&nbsp;UNPL</span>
+    ${lnpl > 0 ? `<span class="legend-item"><span class="legend-dash" style="border-color:#39d353cc;border-top-style:dashed"></span>&nbsp;LNPL</span>` : ''}
+    <span class="legend-item"><span class="legend-dash" style="border-color:#ffa65755;border-top-style:dashed"></span>&nbsp;2/3 korytarza</span>
+    <span class="legend-item"><span class="legend-dash" style="border-color:#e3b34155;border-top-style:dashed"></span>&nbsp;1/3 korytarza</span>`;
+
+  // ── MR chart ────────────────────────────────────────
+  const mrData = [];
+  for (let i = 1; i < weekly.length; i++) {
+    mrData.push({
+      x: weekly[i].date,
+      y: mrs[i - 1],
+      _label: weekly[i].label,
+      _w1: weekly[i - 1].label,
+      _w2: weekly[i].label,
+    });
+  }
+
+  // Signal detection for MR chart: only rule 1 (point above URL) is standard for MR
+  const mrSignals = mrData.map(p => p.y > url ? 4 : 0);
+
+  const mrAnnotations = {
+    xmr_mrbar: {
+      type: 'line', yMin: mrBar, yMax: mrBar,
+      borderColor: '#58a6ffaa', borderWidth: 1.5, borderDash: [6, 3],
+      label: {
+        display: true, content: `mR̄ = ${mrBar.toFixed(1)}`,
+        position: 'end', backgroundColor: '#0d1117cc', color: '#58a6ff',
+        font: { size: 10, weight: '600' }, padding: { x: 5, y: 3 }, yAdjust: -10,
+      },
+    },
+    xmr_mr_median: {
+      type: 'line', yMin: medianMR, yMax: medianMR,
+      borderColor: '#d2a8ffaa', borderWidth: 1.5, borderDash: [3, 4],
+      label: {
+        display: true, content: `Med. MR = ${medianMR.toFixed(1)}`,
+        position: 'end', backgroundColor: '#0d1117cc', color: '#d2a8ff',
+        font: { size: 10, weight: '600' }, padding: { x: 5, y: 3 }, yAdjust: 10,
+      },
+    },
+    xmr_url: {
+      type: 'line', yMin: url, yMax: url,
+      borderColor: '#f78166cc', borderWidth: 2, borderDash: [4, 4],
+      label: {
+        display: true, content: `URL = ${url.toFixed(1)}`,
+        position: 'end', backgroundColor: '#0d1117cc', color: '#f78166',
+        font: { size: 10, weight: '600' }, padding: { x: 5, y: 3 }, yAdjust: -10,
+      },
+    },
+  };
+
+  if (xmrMrChartInstance) xmrMrChartInstance.destroy();
+  const ctxMR = document.getElementById('xmrMrChart').getContext('2d');
+  xmrMrChartInstance = new Chart(ctxMR, {
+    type: 'line',
+    data: {
+      datasets: [{
+        label: 'Zakres ruchomy (MR)',
+        data: mrData,
+        borderColor: '#d2a8ff',
+        backgroundColor: '#d2a8ff22',
+        borderWidth: 2,
+        pointRadius: 7,
+        pointHoverRadius: 10,
+        pointBackgroundColor: mrSignals.map(s => s === 4 ? '#f78166' : '#d2a8ff'),
+        pointBorderColor: mrSignals.map(s => s === 4 ? '#f78166' : '#d2a8ff'),
+        tension: 0.2,
+        fill: false,
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1c2128', borderColor: '#30363d', borderWidth: 1,
+          titleColor: '#c9d1d9', bodyColor: '#8b949e',
+          callbacks: {
+            title: items => `📅 Tydzień od ${items[0].raw._label}`,
+            label: item => {
+              const flag = item.raw.y > url ? ' ⚠ powyżej URL' : '';
+              return ` MR (${item.raw._w1} → ${item.raw._w2}) = ${item.raw.y}${flag}`;
+            },
+          },
+        },
+        annotation: { annotations: mrAnnotations },
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'week', tooltipFormat: 'dd.MM.yyyy', displayFormats: { week: 'dd.MM.yyyy' } },
+          grid: { color: '#21262d' },
+          ticks: { color: '#8b949e', font: { size: 11 } },
+          title: { display: true, text: 'Tydzień (data poniedziałku)', color: '#8b949e', font: { size: 12 } },
+        },
+        y: {
+          beginAtZero: true, grid: { color: '#21262d' },
+          ticks: { color: '#8b949e', font: { size: 11 } },
+          title: { display: true, text: 'Zakres ruchomy (MR)', color: '#8b949e', font: { size: 12 } },
+        },
+      },
+    },
+  });
+
+  // MR chart legend
+  document.getElementById('xmr-mr-legend').innerHTML = `
+    <span class="legend-item"><span class="legend-dot-circle" style="background:#d2a8ffcc;border:2px solid #d2a8ff"></span>&nbsp;Zakres ruchomy (MR)</span>
+    <span class="legend-item"><span class="legend-dot-circle" style="background:#f78166;border:2px solid #f78166"></span>&nbsp;MR powyżej URL</span>
+    <span class="legend-item"><span class="legend-dash" style="border-color:#58a6ffaa;border-top-style:dashed"></span>&nbsp;Średni zakres (mR̄)</span>
+    <span class="legend-item"><span class="legend-dash" style="border-color:#d2a8ffaa;border-top-style:dashed"></span>&nbsp;Mediana MR</span>
+    <span class="legend-item"><span class="legend-dash" style="border-color:#f78166cc;border-top-style:dashed"></span>&nbsp;URL (3,267 × mR̄)</span>`;
+}
+
 </script>
 </body>
 </html>
