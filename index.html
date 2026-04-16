@@ -1216,7 +1216,7 @@ function calcPCBStats(rows) {
   for (let i = 1; i < n; i++) mrSum += Math.abs(times[i] - times[i - 1]);
   const mrBar = n > 1 ? mrSum / (n - 1) : 0;
   const unpl = mean + 2.66 * mrBar;
-  const lnpl = Math.max(0, mean - 2.66 * mrBar);
+  const lnpl = mean - 2.66 * mrBar;
   return { mean, mrBar, unpl, lnpl };
 }
 
@@ -1234,7 +1234,7 @@ function renderPCB() {
     <div class="sum-badge"><div class="slabel">Zamówień</div><div class="svalue">${sorted.length}</div></div>
     <div class="sum-badge p50"><div class="slabel">Średnia (X̄)</div><div class="svalue">${mean.toFixed(1)}<span class="sunit">dni</span></div></div>
     <div class="sum-badge"><div class="slabel" style="color:#f78166">UNPL</div><div class="svalue" style="color:#f78166">${unpl.toFixed(1)}<span class="sunit">dni</span></div></div>
-    <div class="sum-badge"><div class="slabel" style="color:#39d353">LNPL</div><div class="svalue" style="color:#39d353">${lnpl.toFixed(1)}<span class="sunit">dni</span></div></div>
+    ${lnpl > 0 ? `<div class="sum-badge"><div class="slabel" style="color:#39d353">LNPL</div><div class="svalue" style="color:#39d353">${lnpl.toFixed(1)}<span class="sunit">dni</span></div></div>` : ''}
     <div class="sum-badge"><div class="slabel">Śr. zakres ruchu</div><div class="svalue">${mrBar.toFixed(1)}<span class="sunit">dni</span></div></div>`;
 
   // Chart dataset — individual values line
@@ -1375,7 +1375,7 @@ function openPCBModal(rawId) {
   const rawIdx = PCB_RAW.findIndex(r => r.id === rawId);
   const entry = PCB_RAW[rawIdx];
   if (!entry) return;
-  const stats = calcPCBStats(PCB_RAW);
+  const stats = calcPCBStats([...PCB_RAW].sort((a, b) => parseDateMDY(a.closed) - parseDateMDY(b.closed)));
   const flag = entry.time > stats.unpl ? ' ⚠ powyżej UNPL' : (stats.lnpl > 0 && entry.time < stats.lnpl) ? ' ⬇ poniżej LNPL' : '';
   document.getElementById('pcb-modal-title').textContent = `#${entry.id} — Czas realizacji: ${entry.time} dni${flag}`;
   document.getElementById('pcb-modal-subtitle').textContent =
