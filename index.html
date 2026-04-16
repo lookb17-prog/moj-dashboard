@@ -1238,13 +1238,12 @@ function renderPCB() {
     <div class="sum-badge"><div class="slabel">Śr. zakres ruchu</div><div class="svalue">${mrBar.toFixed(1)}<span class="sunit">dni</span></div></div>`;
 
   // Chart dataset — individual values line
-  const chartData = sorted.map((r, i) => ({
+  const chartData = sorted.map(r => ({
     x: parseDateMDY(r.closed),
     y: r.time,
     _rawId: r.id,
     _started: r.started,
     _closed: r.closed,
-    _idx: PCB_RAW.indexOf(r),
   }));
 
   const minDate = chartData.length ? chartData[0].x : new Date();
@@ -1312,7 +1311,7 @@ function renderPCB() {
         if (!elements.length) return;
         const pt = pcbChartInstance.data.datasets[0].data[elements[0].index];
         if (pt == null) return;
-        openPCBModal(pt._idx, pt._rawId);
+        openPCBModal(pt._rawId);
       },
       plugins: {
         legend: { display: false },
@@ -1372,7 +1371,8 @@ function renderPCB() {
     </span>` : ''}`;
 }
 
-function openPCBModal(rawIdx, rawId) {
+function openPCBModal(rawId) {
+  const rawIdx = PCB_RAW.findIndex(r => r.id === rawId);
   const entry = PCB_RAW[rawIdx];
   if (!entry) return;
   const stats = calcPCBStats(PCB_RAW);
