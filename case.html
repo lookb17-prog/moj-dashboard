@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Projekt AURORA – Framework RADAR</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+      color: #f0f6fc;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #8b949e;
+      margin-bottom: 28px;
+    }
+    .radar-badge {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 24px;
+    }
+    .radar-letter {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 0;
+      border: 2px solid;
+    }
+    .rl-r1 { background: #12261e; border-color: #39d353; color: #39d353; }
+    .rl-a1 { background: #0d1d35; border-color: #58a6ff; color: #58a6ff; }
+    .rl-d  { background: #2a1010; border-color: #f78166; color: #f78166; }
+    .rl-a2 { background: #231a00; border-color: #e3b341; color: #e3b341; }
+    .rl-r2 { background: #1a0e2e; border-color: #bc8cff; color: #bc8cff; }
+
+    /* ── Tabs ────────────────────────────────────────── */
+    .tabs-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 28px;
+      border-bottom: 1px solid #30363d;
+      padding-bottom: 0;
+    }
+    .tab-btn {
+      background: none;
+      border: 1px solid transparent;
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      color: #8b949e;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 9px 18px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      position: relative;
+      bottom: -1px;
+    }
+    .tab-btn:hover { background: #161b22; color: #c9d1d9; }
+    .tab-btn.active {
+      background: #0d1117;
+      border-color: #30363d;
+      border-bottom-color: #0d1117;
+    }
+    .tab-btn.t-r1.active  { color: #39d353; }
+    .tab-btn.t-a1.active  { color: #58a6ff; }
+    .tab-btn.t-d.active   { color: #f78166; }
+    .tab-btn.t-a2.active  { color: #e3b341; }
+    .tab-btn.t-r2.active  { color: #bc8cff; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Cards & layout ──────────────────────────────── */
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title .accent { font-size: 1.5rem; }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 18px;
+    }
+    .card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #c9d1d9;
+    }
+    .card h4 {
+      font-size: 0.88rem;
+      font-weight: 700;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .card p, .card li {
+      font-size: 0.9rem;
+      line-height: 1.65;
+      color: #c9d1d9;
+    }
+    .card ul, .card ol {
+      padding-left: 20px;
+      margin-top: 4px;
+    }
+    .card li { margin-bottom: 4px; }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+    .three-col {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 800px) { .three-col { grid-template-columns: 1fr; } }
+
+    /* ── Use-case priority matrix ───────────────────── */
+    .uc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .uc-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 16px 18px;
+      border-left: 4px solid;
+    }
+    .uc-card.uc-1 { border-left-color: #39d353; }
+    .uc-card.uc-2 { border-left-color: #58a6ff; }
+    .uc-card.uc-3 { border-left-color: #e3b341; }
+    .uc-card .uc-rank {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      opacity: 0.7;
+    }
+    .uc-card.uc-1 .uc-rank { color: #39d353; }
+    .uc-card.uc-2 .uc-rank { color: #58a6ff; }
+    .uc-card.uc-3 .uc-rank { color: #e3b341; }
+    .uc-card h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin: 0 0 8px 0;
+      color: #e6edf3;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .uc-card p { font-size: 0.85rem; color: #8b949e; margin: 0; }
+    .score-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .score-pill {
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: #21262d;
+      color: #8b949e;
+    }
+
+    /* ── Stakeholder table ───────────────────────────── */
+    .table-wrap { overflow-x: auto; margin-bottom: 18px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    th {
+      background: #21262d;
+      color: #8b949e;
+      font-weight: 600;
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid #30363d;
+    }
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #21262d;
+      color: #c9d1d9;
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .badge-green  { background: #12261e; color: #39d353; border: 1px solid #39d35344; }
+    .badge-blue   { background: #0d1d35; color: #58a6ff; border: 1px solid #58a6ff44; }
+    .badge-yellow { background: #231a00; color: #e3b341; border: 1px solid #e3b34144; }
+    .badge-red    { background: #2a1010; color: #f78166; border: 1px solid #f7816644; }
+    .badge-purple { background: #1a0e2e; color: #bc8cff; border: 1px solid #bc8cff44; }
+
+    /* ── Assistant spec ──────────────────────────────── */
+    .spec-row {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 8px 16px;
+      align-items: start;
+      margin-bottom: 8px;
+      font-size: 0.88rem;
+    }
+    .spec-label {
+      color: #8b949e;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.72rem;
+      padding-top: 3px;
+    }
+    .spec-value { color: #c9d1d9; }
+    .prompt-box {
+      background: #010409;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 0.82rem;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      color: #79c0ff;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      margin-top: 8px;
+    }
+
+    /* ── Risk list ───────────────────────────────────── */
+    .risk-item {
+      display: flex;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #21262d;
+    }
+    .risk-item:last-child { border-bottom: none; }
+    .risk-num {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #f78166;
+      min-width: 28px;
+    }
+    .risk-text h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; color: #f78166; }
+    .risk-text p  { font-size: 0.85rem; color: #8b949e; }
+
+    /* ── Chart containers ────────────────────────────── */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 900px) { .chart-grid { grid-template-columns: 1fr; } }
+    .chart-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 18px 20px;
+    }
+    .chart-card h3 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: #c9d1d9;
+    }
+    .chart-card canvas { max-width: 100%; }
+    .chart-full {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 18px;
+    }
+    .chart-full h3 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: #c9d1d9;
+    }
+
+    /* ── KPI row ─────────────────────────────────────── */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .kpi {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .kpi .k-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #8b949e;
+      margin-bottom: 6px;
+    }
+    .kpi .k-value {
+      font-size: 1.5rem;
+      font-weight: 800;
+    }
+    .kpi .k-unit {
+      font-size: 0.7rem;
+      color: #8b949e;
+      margin-left: 3px;
+    }
+    .kpi-green  .k-value { color: #39d353; }
+    .kpi-blue   .k-value { color: #58a6ff; }
+    .kpi-yellow .k-value { color: #e3b341; }
+    .kpi-red    .k-value { color: #f78166; }
+
+    /* ── Rehearsal Q&A ───────────────────────────────── */
+    .qa-item {
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .qa-question {
+      background: #21262d;
+      padding: 12px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #bc8cff;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    .qa-question::after { content: '▼'; font-size: 0.7rem; color: #8b949e; }
+    .qa-question.open::after { content: '▲'; }
+    .qa-answer {
+      background: #161b22;
+      padding: 14px 16px;
+      font-size: 0.88rem;
+      line-height: 1.65;
+      color: #c9d1d9;
+      display: none;
+    }
+    .qa-answer.open { display: block; }
+    .qa-answer ul { padding-left: 18px; }
+    .qa-answer li { margin-bottom: 4px; }
+
+    /* ── Recommendation summary ──────────────────────── */
+    .rec-box {
+      background: #12261e;
+      border: 1px solid #39d35344;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 18px;
+    }
+    .rec-box h3 { color: #39d353; margin-bottom: 10px; }
+    .rec-box p  { font-size: 0.9rem; line-height: 1.65; color: #c9d1d9; }
+  </style>
+</head>
+<body>
+
+  <h1>Projekt AURORA</h1>
+  <p class="subtitle">DomoLinea Group · Framework RADAR Projektu · Kwiecień 2026</p>
+
+  <div class="radar-badge">
+    <div class="radar-letter rl-r1" title="Research">R</div>
+    <div class="radar-letter rl-a1" title="Assistants">A</div>
+    <div class="radar-letter rl-d"  title="Dissent">D</div>
+    <div class="radar-letter rl-a2" title="Artifact">A</div>
+    <div class="radar-letter rl-r2" title="Rehearsal">R</div>
+  </div>
+
+  <nav class="tabs-nav">
+    <button class="tab-btn t-r1 active" onclick="showTab('r1',this)">R – Research</button>
+    <button class="tab-btn t-a1"        onclick="showTab('a1',this)">A – Assistants</button>
+    <button class="tab-btn t-d"         onclick="showTab('dd',this)">D – Smerf Maruda</button>
+    <button class="tab-btn t-a2"        onclick="showTab('a2',this)">A – Artifact</button>
+    <button class="tab-btn t-r2"        onclick="showTab('r2',this)">R – Rehearsal</button>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════════════ R – RESEARCH -->
+  <div id="tab-r1" class="tab-content active">
+    <div class="section-title">
+      <span class="accent" style="color:#39d353">R</span>
+      Research kontekstu projektu — Project Situation Brief
+    </div>
+
+    <div class="card">
+      <h3>📌 Cel biznesowy i problem do rozwiązania</h3>
+      <p>
+        DomoLinea Group realizuje projekt AURORA z jednym nadrzędnym celem: <strong>w ciągu 90 dni zidentyfikować,
+        zweryfikować i przygotować do pilotażu trzy use case'y AI o najwyższym potencjale biznesowym</strong>,
+        z rekomendacją wdrożeniową, prototypem jednego rozwiązania oraz planem komunikacji i adopcji.
+      </p>
+      <p style="margin-top:10px">
+        Fundamentalnym problemem jest <strong>brak konsensusu co do priorytetu</strong>: każdy dział widzi własne bolączki
+        jako najważniejsze, a firma nie ma ustrukturyzowanego procesu oceny i selekcji inicjatyw AI.
+        Równolegle trwa duży projekt ERP, co ogranicza dostępność IT i zasobów integracyjnych.
+        Prezes oczekuje konkretnej rekomendacji z uzasadnionym modelem korzyści, a CFO warunkuje
+        zwolnienie budżetu pokazaniem potencjału >2,5 mln PLN efektów biznesowych rocznie.
+      </p>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <h3>🏢 Profil organizacji</h3>
+        <h4>Firma</h4>
+        <ul>
+          <li>DomoLinea Group — producent/dystrybutor w branży wyposażenia wnętrz i materiałów budowlanych (B2B)</li>
+          <li>Silny wzrost przychodów, ale spowalniająca rentowność</li>
+          <li>Klienci: sieci handlowe, deweloperzy, partnerzy wykonawczy</li>
+          <li>Trwający projekt ERP — ograniczone zasoby IT na nowe inicjatywy</li>
+        </ul>
+        <h4>Sytuacja wyjściowa</h4>
+        <ul>
+          <li>Sprzedaż: presja na szybsze oferty i personalizację</li>
+          <li>Operacje: potrzeba lepszego prognozowania popytu</li>
+          <li>Marketing: automatyzacja treści</li>
+          <li>BOK: szybsze odpowiedzi na zapytania klientów</li>
+          <li>Zakupy: wsparcie negocjacji z dostawcami</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>⏱ Ograniczenia projektu</h3>
+        <ul>
+          <li><strong>Czas:</strong> 90 dni na discovery i proof of value; 3 tygodnie na shortlistę priorytetów</li>
+          <li><strong>Budżet:</strong> 900 tys. PLN (warunkowy — CFO może obciąć o 30% bez widocznych priorytetów)</li>
+          <li><strong>Technologia:</strong> zasada clean core — brak głębokiej integracji z ERP na starcie</li>
+          <li><strong>Zasoby IT:</strong> zaangażowane w projekt ERP; ograniczona przestrzeń na równoległe wdrożenia</li>
+          <li><strong>Governance:</strong> ryzyko shadow IT (regionalny dyrektor sprzedaży prowadzi rozmowy z zewnętrznym dostawcą AI)</li>
+          <li><strong>Adopcja:</strong> 23% pracowników deklaruje obawę przed AI; 46% ostrożność</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>👥 Mapa interesariuszy</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Interesariusz</th>
+              <th>Rola / Oczekiwanie</th>
+              <th>Ryzyko nieuwzględnienia</th>
+              <th>Nastawienie</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Prezes</strong></td>
+              <td>Oczekuje rekomendacji z konkretnym modelem korzyści i uzasadnieniem kolejności</td>
+              <td>Projekt postrzegany jako kolejny „katalog pomysłów"</td>
+              <td><span class="badge badge-yellow">Wymagający</span></td>
+            </tr>
+            <tr>
+              <td><strong>COO (Sponsor)</strong></td>
+              <td>Decydent; oczekuje kierunku możliwego do obrony w 3 tygodnie</td>
+              <td>Utrata poparcia projektu; cofnięcie mandatu</td>
+              <td><span class="badge badge-green">Wspierający</span></td>
+            </tr>
+            <tr>
+              <td><strong>CFO</strong></td>
+              <td>Finansowanie warunkowe; wymaga ROI >2,5 mln PLN/rok i realistycznego planu</td>
+              <td>Cięcie budżetu o 30%; ograniczenie do jednego pilotażu</td>
+              <td><span class="badge badge-yellow">Sceptyczny</span></td>
+            </tr>
+            <tr>
+              <td><strong>CIO</strong></td>
+              <td>Straż clean core; brak zasobów na integrację ERP; wymaga governance</td>
+              <td>Blokada wdrożenia przez IT; konflikty architektoniczne</td>
+              <td><span class="badge badge-blue">Warunkowy</span></td>
+            </tr>
+            <tr>
+              <td><strong>Dyrektor Sprzedaży</strong></td>
+              <td>Potrzebuje namacalnego prototypu do końca kwartału; ryzyko shadow IT</td>
+              <td>Niezależne zakupy narzędzi AI poza projektem</td>
+              <td><span class="badge badge-red">Niecierpliwy</span></td>
+            </tr>
+            <tr>
+              <td><strong>HR</strong></td>
+              <td>Zarządzanie zmianą; 23% pracowników obawia się AI</td>
+              <td>Opór i niska adopcja; pytania bez odpowiedzi</td>
+              <td><span class="badge badge-yellow">Ostrożny</span></td>
+            </tr>
+            <tr>
+              <td><strong>Anna Wrońska (PM)</strong></td>
+              <td>Lider operacyjny; koordynacja wszystkich stron</td>
+              <td>Przeciążenie; brak mandatu do podejmowania decyzji</td>
+              <td><span class="badge badge-green">Zaangażowana</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <h3>⚠️ Kluczowe ryzyka projektu</h3>
+        <ul>
+          <li><strong>Shadow IT:</strong> regionalny dyrektor negocjuje zakup narzędzia AI poza projektem → fragmentacja, utrata governance, cofnięcie finansowania przez CFO</li>
+          <li><strong>Niska jakość danych:</strong> brak oceny gotowości danych wejściowych dla use case'ów AI może doprowadzić do overpromisingów niemożliwych do zrealizowania</li>
+          <li><strong>Nadmiar priorytetów:</strong> 5+ departamentów z własnymi życzeniami; ryzyko rozmycia zakresu i niespełnienia żadnego kryterium CFO</li>
+          <li><strong>Opór adopcyjny:</strong> 69% pracowników ostrożnych lub bojących się AI — bez planu change management wdrożenie nie zadziała</li>
+          <li><strong>Konfl. zasobów IT:</strong> trwający ERP vs. projekt AURORA; niedostępność zasobów może wydłużyć harmonogram</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>❓ Kluczowe niewiadome</h3>
+        <ul>
+          <li>Jakość i dostępność danych transakcyjnych dla AI (oferty, zapytania, historia zamówień)</li>
+          <li>Rzeczywisty czas przygotowania oferty dziś (benchmark do mierzenia efektu)</li>
+          <li>Gotowość i skłonność handlowców do adopcji narzędzia w codziennej pracy</li>
+          <li>Poziom standaryzacji procesów sprzedaży i BOK (prerequisite dla automatyzacji)</li>
+          <li>Realne koszty integracji nawet lekkiego narzędzia AI z obecnym stackiem IT</li>
+          <li>Szczegółowy zakres pilotażu dostawcy AI wybranego przez regionalnego dyrektora</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🌐 Sygnały rynkowe wpływające na priorytety</h3>
+      <div class="three-col" style="margin-top:10px">
+        <div style="background:#21262d;border-radius:8px;padding:14px 16px">
+          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#39d353;margin-bottom:6px">Sygnał 1 — Klienci B2B</div>
+          <p style="font-size:0.85rem;color:#c9d1d9">Klienci B2B coraz powszechniej oczekują <strong>ofert w czasie poniżej 24h</strong> oraz pełnej przejrzystości statusów zamówień. Firmy, które nie spełniają tych oczekiwań, tracą przetargi na rzecz szybszych konkurentów, nawet przy podobnej cenie.</p>
+        </div>
+        <div style="background:#21262d;border-radius:8px;padding:14px 16px">
+          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#58a6ff;margin-bottom:6px">Sygnał 2 — Konkurencja</div>
+          <p style="font-size:0.85rem;color:#c9d1d9">Bezpośredni i pośredni konkurenci <strong>aktywnie wdrażają AI</strong> do wspomagania handlowców: generowanie treści ofertowych, analiza zapytań, rekomendacje produktowe. Opóźnienie o 12–18 miesięcy może utrwalić ich przewagę doświadczenia i danych.</p>
+        </div>
+        <div style="background:#21262d;border-radius:8px;padding:14px 16px">
+          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#e3b341;margin-bottom:6px">Sygnał 3 — Rynek pracy i adopcja AI</div>
+          <p style="font-size:0.85rem;color:#c9d1d9">Wg badań europejskich organizacji, <strong>firmy budujące kompetencje AI w 2025–2026</strong> notują +15–25% efektywności pracy knowledge workers w ciągu 12 miesięcy. Okno adopcyjne się zawęża — early movers zyskują nie tylko narzędzia, ale know-how i kulturę pracy z AI.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🏆 Rekomendowane top 3 use case'y AI</h3>
+      <p style="font-size:0.85rem;color:#8b949e;margin-bottom:14px">
+        Selekcja na podstawie czterech kryteriów: wartość biznesowa, szybkość pokazania efektu, wykonalność w clean core, ryzyko adopcji.
+      </p>
+      <div class="uc-grid">
+        <div class="uc-card uc-1">
+          <div class="uc-rank">#1 Priorytet</div>
+          <h4>AI-Assisted Offer Generator (Sprzedaż)</h4>
+          <p>Automatyczne generowanie pierwszej wersji oferty na podstawie zapytania klienta, historii, katalogu produktów i szablonów. Handlowiec weryfikuje i wysyła — nie tworzy od zera.</p>
+          <div class="score-row">
+            <span class="score-pill">Wartość: ★★★★★</span>
+            <span class="score-pill">Szybkość: ★★★★★</span>
+            <span class="score-pill">Ryzyko: niskie</span>
+            <span class="score-pill">ROI szac.: 1,2–1,8 mln PLN/rok</span>
+          </div>
+        </div>
+        <div class="uc-card uc-2">
+          <div class="uc-rank">#2 Priorytet</div>
+          <h4>AI Demand Forecasting (Operacje)</h4>
+          <p>Model prognozowania popytu i obciążenia magazynów na podstawie historii sprzedaży, sezonowości i danych zewnętrznych. Zmniejsza koszty nadmiernych zapasów i braków.</p>
+          <div class="score-row">
+            <span class="score-pill">Wartość: ★★★★☆</span>
+            <span class="score-pill">Szybkość: ★★★☆☆</span>
+            <span class="score-pill">Ryzyko: średnie (dane)</span>
+            <span class="score-pill">ROI szac.: 0,8–1,2 mln PLN/rok</span>
+          </div>
+        </div>
+        <div class="uc-card uc-3">
+          <div class="uc-rank">#3 Priorytet</div>
+          <h4>AI Customer Inquiry Responder (BOK)</h4>
+          <p>Asystent przygotowujący pierwszą wersję odpowiedzi na typowe zapytania klientów (status zamówienia, specyfikacje, reklamacje). Redukuje czas obsługi i obciążenie agentów.</p>
+          <div class="score-row">
+            <span class="score-pill">Wartość: ★★★☆☆</span>
+            <span class="score-pill">Szybkość: ★★★★☆</span>
+            <span class="score-pill">Ryzyko: niskie–średnie</span>
+            <span class="score-pill">ROI szac.: 0,4–0,7 mln PLN/rok</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ A – ASSISTANTS -->
+  <div id="tab-a1" class="tab-content">
+    <div class="section-title">
+      <span class="accent" style="color:#58a6ff">A</span>
+      Assistants — Wyspecjalizowany asystent AI
+    </div>
+
+    <div class="card">
+      <h3>🤖 Asystent: Priorytetyzator Use Case'ów AI (UC Prioritizer)</h3>
+      <p style="margin-bottom:16px;color:#8b949e;font-size:0.88rem">
+        Wyspecjalizowany asystent pracujący na materiale case'owym projektu AURORA. Jego zadaniem jest
+        przeprowadzenie strukturyzowanej oceny kandydackich use case'ów AI i dostarczenie uargumentowanej listy priorytetów.
+      </p>
+
+      <div class="spec-row">
+        <div class="spec-label">Rola</div>
+        <div class="spec-value">Analityk priorytyzacji use case'ów AI dla organizacji w trakcie transformacji cyfrowej. Działa jako bezstronny moderator między interesami różnych działów, stosując ustrukturyzowaną matrycę oceny.</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-label">Wejścia</div>
+        <div class="spec-value">
+          <ul>
+            <li>Opis organizacji i jej kontekst biznesowy (np. materiał case'owy AURORA)</li>
+            <li>Lista kandydackich use case'ów AI zgłoszonych przez działy</li>
+            <li>Ograniczenia: budżet, czas, zasoby IT, zasady governance</li>
+            <li>Oczekiwania kluczowych interesariuszy (cytaty, notatki ze spotkań)</li>
+            <li>Sygnały rynkowe i informacje o działaniach konkurencji</li>
+          </ul>
+        </div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-label">Wyjścia</div>
+        <div class="spec-value">
+          <ul>
+            <li>Rankingi use case'ów z oceną punktową w 4 wymiarach (wartość / szybkość / wykonalność / ryzyko)</li>
+            <li>Krótki brief każdego use case'a (problem, rozwiązanie, mierzalny efekt, warunki sukcesu)</li>
+            <li>Top 3 z uzasadnieniem wyboru i argumentami do obrony przed CFO/CIO</li>
+            <li>Lista zależności i warunków wstępnych (np. jakość danych, zasoby IT)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-label">Zasady pracy</div>
+        <div class="spec-value">
+          <ul>
+            <li>Zawsze zadaj pytanie o dane wejściowe zanim zaproponujesz ranking</li>
+            <li>Odróżniaj „życzenie działu" od „udowodnionego problemu biznesowego"</li>
+            <li>Każda ocena musi mieć uzasadnienie — nie stawiaj punktów bez argumentu</li>
+            <li>Uwzględniaj zasadę clean core: preferuj use case'y możliwe bez głębokiej integracji ERP</li>
+            <li>Zawsze wskaż, jakiej wiedzy lub danych brakuje do rzetelnej oceny</li>
+          </ul>
+        </div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-label">Ograniczenia</div>
+        <div class="spec-value">
+          <ul>
+            <li>Nie szacuje ROI bez podania założeń — zawsze pokazuj widełki i warunki</li>
+            <li>Nie rekomenduje więcej niż 3 use case'ów jednocześnie</li>
+            <li>Nie pomija ryzyk adopcyjnych i organizacyjnych nawet jeśli użytkownik o nie nie pyta</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>💡 Przykład zastosowania — sesja z asystentem</h3>
+      <h4>Prompt użytkownika</h4>
+      <div class="prompt-box">Mam listę 6 pomysłów na AI z różnych działów DomoLinea Group:
+1. Generator ofert dla sprzedaży
+2. Chatbot obsługi klienta
+3. AI do generowania treści marketingowych
+4. Prognozowanie popytu (Operacje)
+5. AI do analizy CV dla HR
+6. Negocjator zakupowy AI
+
+Budżet discovery: 900 tys. PLN. Czas: 90 dni. ERP w trakcie. 
+Który z tych kierunków wybrać jako top 3? Uzasadnij i powiedz, co powiedzieć CFO.</div>
+
+      <h4>Odpowiedź asystenta (fragment)</h4>
+      <div class="prompt-box" style="color:#c9d1d9">Rozumiem. Zanim podam ranking, potrzebuję kilku danych:
+1. Czy masz dane o obecnym czasie przygotowania oferty (w dniach)?
+2. Czy historia zapytań klientów i odpowiedzi BOK jest cyfrowa i ustrukturyzowana?
+3. Ile ofert miesięcznie przetwarza sprzedaż?
+
+Zakładając typowe wartości dla firm tej wielkości, moje wstępne TOP 3:
+
+#1 GENERATOR OFERT (Sprzedaż) — 48 pkt / 60
+   → Bezpośredni wpływ na przychód, szybki prototyp (4–6 tyg.), 
+     nie wymaga integracji ERP, eliminuje ryzyko shadow IT.
+   → Dla CFO: skrócenie czasu oferty z 5 dni do 1 dnia przy 200 ofertach/mies.
+     = ~1,5 mln PLN/rok dodatkowej marży ze skróconego lead time.
+
+#2 PROGNOZOWANIE POPYTU (Operacje) — 41 pkt / 60
+   → Wysoki ROI, ale wymaga oceny jakości danych historycznych (blokada!).
+   → Rekomendacja: start od data audit, pilotaż 1 kategorii produktowej.
+
+#3 CHATBOT BOK — 38 pkt / 60
+   → Szybki w build, ale wartość zależy od standaryzacji zapytań.
+   → Ryzyko: klienci B2B preferują kontakt z osobą — zbadaj NPS.
+
+ODRZUCONE:
+- Marketing: niska pilność, brak danych o problemie do rozwiązania
+- HR/CV: mały wpływ biznesowy, wysokie ryzyko regulacyjne (RODO, AI Act)
+- Negocjator zakupowy: wartościowy, ale wymaga danych ERP — nie clean core</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ D – DISSENT -->
+  <div id="tab-dd" class="tab-content">
+    <div class="section-title">
+      <span class="accent" style="color:#f78166">D</span>
+      Dissent — Smerf Maruda: podważamy założenia
+    </div>
+
+    <div class="card" style="border-color:#f7816644">
+      <h3 style="color:#f78166">😤 Smerf Maruda mówi: „Zatrzymajcie się i pomyślcie jeszcze raz"</h3>
+      <p style="font-size:0.88rem;color:#8b949e;margin-bottom:16px">
+        Poniżej krytyczna analiza kluczowych założeń projektu AURORA. Każdy punkt to miejsce, gdzie
+        optymizm zespołu może być nieuzasadniony — i gdzie rzeczy mogą się posypać.
+      </p>
+
+      <div class="risk-item">
+        <div class="risk-num">1</div>
+        <div class="risk-text">
+          <h4>ROI 2,5 mln PLN/rok jest wzięty z sufitu</h4>
+          <p>Nie ma ani jednego pomiaru baseline'u: ile trwa dziś przygotowanie oferty? Ile ofert jest przegrywanych przez wolny czas reakcji? Ile kosztuje obsługa jednego zapytania BOK? Bez tych danych każdy szacunek ROI to storytelling, nie analiza. CFO to zauważy.</p>
+        </div>
+      </div>
+
+      <div class="risk-item">
+        <div class="risk-num">2</div>
+        <div class="risk-text">
+          <h4>90 dni to za mało na TRZY use case'y jednocześnie</h4>
+          <p>W ciągu 90 dni można solidnie wykonać discovery, budowę prototypu i wstępne testy dla JEDNEGO use case'a. Trzy to przepis na trzy niedokończone prototypy i zero dowodów wartości. Presja na „trzy" pochodzi od zarządu, ale nie jest możliwa do wykonania bez kompromisów jakościowych.</p>
+        </div>
+      </div>
+
+      <div class="risk-item">
+        <div class="risk-num">3</div>
+        <div class="risk-text">
+          <h4>Dane do AI mogą być w złym stanie</h4>
+          <p>Firma nie przechodziła wcześniej audytu danych pod kątem AI. Zapytania klientów mogą być w nieustrukturyzowanych e-mailach, szablony ofert nie istnieją lub są w 10 wersjach Excela, historia sprzedaży może mieć luki po starym systemie ERP. Garbage in, garbage out — AI zbudowana na złych danych nie zadziała, nawet jeśli technologia jest doskonała.</p>
+        </div>
+      </div>
+
+      <div class="risk-item">
+        <div class="risk-num">4</div>
+        <div class="risk-text">
+          <h4>Handlowcy mogą sabotować generator ofert</h4>
+          <p>Sprzedaż to dział o wysokiej autonomii i silnej kulturze relacyjnej. Handlowcy mogą postrzegać AI-generator jako zagrożenie dla swojej ekspertyzy lub jako nadzór nad ich pracą. Jeśli nie zostaną włączeni do projektowania rozwiązania od początku, zaadoptują narzędzie tylko formalnie — i będą generować oferty po staremu, kopiując wynik AI bez refleksji.</p>
+        </div>
+      </div>
+
+      <div class="risk-item">
+        <div class="risk-num">5</div>
+        <div class="risk-text">
+          <h4>Shadow IT to nie tylko ryzyko — to objaw systemowy</h4>
+          <p>Regionalny dyrektor nie działa z złośliwości — działa dlatego, że projekt centralny jest dla niego za wolny i za mało konkretny. To sygnał, że sposób prowadzenia projektu nie odpowiada potrzebom biznesu. Zablokowanie shadow IT bez przyspieszenia projektu i pokazania deliverable'u w ciągu 2–3 tygodni spowoduje eskalację frustracji i powtórzenie próby.</p>
+        </div>
+      </div>
+
+      <div class="risk-item">
+        <div class="risk-num">6</div>
+        <div class="risk-text">
+          <h4>Clean core to nie jest zasada — to ograniczenie, które może ograniczyć wartość</h4>
+          <p>CIO słusznie chroni stabilność ERP. Ale jeśli każdy use case AI będzie musiał działać bez dostępu do danych transakcyjnych z ERP, to wartość generowania ofert będzie ograniczona do szablonów — bez personalizacji cenowej, historii klienta ani marżowości. „Clean core" może być wymówką, a nie architektoniczną koniecznością.</p>
+        </div>
+      </div>
+
+      <div class="risk-item">
+        <div class="risk-num">7</div>
+        <div class="risk-text">
+          <h4>Projekt ma sponsora, ale nie ma właściciela biznesowego</h4>
+          <p>Anna Wrońska jest liderem operacyjnym, ale każdy dział ma własne priorytety. Bez wyznaczonego właściciela po stronie biznesu dla każdego use case'a (ktoś, kto odpowiada za adopcję, pomiar efektów i utrzymanie narzędzia), projekt skończy się na fazie prototypu — i nie przejdzie do produkcji.</p>
+        </div>
+      </div>
+
+      <div class="risk-item">
+        <div class="risk-num">8</div>
+        <div class="risk-text">
+          <h4>Obietnica 900 tys. PLN to zbyt mało, żeby zrobić wszystko — zbyt dużo, żeby nie zrobić nic</h4>
+          <p>900 tys. PLN na discovery + prototyp + plan komunikacji + adopcji dla 3 use case'ów jednocześnie to budżet, który można spalić na konsultantów i warsztaty bez żadnego working software. Potrzebna jest jawna decyzja: jeden solidny use case z pełnym dowozem, czy trzy eksploracje, które skończą się deck'iem i niczym więcej.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="border-color:#e3b34144">
+      <h3 style="color:#e3b341">🔍 Luki w dowodach — czego brakuje do rzetelnej decyzji</h3>
+      <div class="two-col">
+        <ul>
+          <li>Brak pomiaru aktualnego czasu przygotowania oferty (benchmark)</li>
+          <li>Brak analizy jakości danych wejściowych dla każdego use case'a</li>
+          <li>Brak wywiadu z handlowcami o realnych bólach procesu ofertowego</li>
+          <li>Brak NPS klientów dotyczącego szybkości i jakości ofert</li>
+        </ul>
+        <ul>
+          <li>Brak szczegółów o narzędziu AI rozważanym przez regionalnego dyrektora</li>
+          <li>Brak analizy regulacyjnej (AI Act, RODO) dla poszczególnych use case'ów</li>
+          <li>Brak oceny gotowości modeli AI na polskie realia językowe i branżowe</li>
+          <li>Brak jasności co do tego, kto jest biznesowym właścicielem każdego use case'a</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ A – ARTIFACT -->
+  <div id="tab-a2" class="tab-content">
+    <div class="section-title">
+      <span class="accent" style="color:#e3b341">A</span>
+      Artifact — Dashboard operacyjny projektu AURORA
+    </div>
+
+    <p style="font-size:0.88rem;color:#8b949e;margin-bottom:18px">
+      Poniżej prosty dashboard operacyjny ilustrujący prototyp artefaktu dla sponsora projektu.
+      Wykresy oparte są na danych rzeczywistych z plików CSV dostarczonych do case'a (czasy realizacji zadań projektowych).
+      W realnym projekcie AURORA ten dashboard pokazywałby metryki use case'a AI-Offer-Generator: liczbę ofert,
+      czas generowania, wskaźnik akceptacji przez handlowców i konwersję.
+    </p>
+
+    <!-- KPI row -->
+    <div class="kpi-row">
+      <div class="kpi kpi-green">
+        <div class="k-label">Mediana CT (wszystkie)</div>
+        <div class="k-value">71<span class="k-unit">dni</span></div>
+      </div>
+      <div class="kpi kpi-blue">
+        <div class="k-label">85. percentyl CT</div>
+        <div class="k-value">124<span class="k-unit">dni</span></div>
+      </div>
+      <div class="kpi kpi-yellow">
+        <div class="k-label">Śr. tygodniowa przepust.</div>
+        <div class="k-value">3,8<span class="k-unit">elem/tydz</span></div>
+      </div>
+      <div class="kpi kpi-red">
+        <div class="k-label">Pozycje outlier (>200 dni)</div>
+        <div class="k-value">3<span class="k-unit">szt</span></div>
+      </div>
+      <div class="kpi kpi-green">
+        <div class="k-label">Pozycji ogółem</div>
+        <div class="k-value">36<span class="k-unit">szt</span></div>
+      </div>
+    </div>
+
+    <div class="chart-grid">
+      <!-- Histogram -->
+      <div class="chart-card">
+        <h3>📊 Histogram czasów realizacji wg rozmiaru</h3>
+        <canvas id="histChart" height="260"></canvas>
+      </div>
+      <!-- Scatter -->
+      <div class="chart-card">
+        <h3>⏱ Scatterplot: Data ukończenia vs Czas realizacji</h3>
+        <canvas id="scatterChart" height="260"></canvas>
+      </div>
+    </div>
+
+    <!-- Throughput full width -->
+    <div class="chart-full">
+      <h3>📈 Tempo dostarczania dzienne (styczeń – kwiecień 2025) z 7-dniową średnią kroczącą</h3>
+      <canvas id="throughputChart" height="160"></canvas>
+    </div>
+
+    <!-- PCB full width -->
+    <div class="chart-full">
+      <h3>🔄 Process Control Board (PCB) — Czas cyklu per task (n=30)</h3>
+      <canvas id="pcbChart" height="160"></canvas>
+    </div>
+
+    <div class="card">
+      <h3>💡 Co ten dashboard mówi o projekcie AURORA?</h3>
+      <div class="two-col">
+        <div>
+          <h4>Obserwacje</h4>
+          <ul>
+            <li>Mediana czasu realizacji wynosi ok. 71 dni — ale 85. percentyl to już 124 dni, co wskazuje na znaczną zmienność procesu</li>
+            <li>Zadania rozmiarów L są najdłuższe (mediana ~124 dni), S najkrótsze (mediana ~52 dni)</li>
+            <li>3 pozycje przekraczają 200 dni — są outlierami blokerów procesowych</li>
+            <li>Tempo dostarczania jest nieregularne — wyraźny wzorzec tygodniowy z peakami w czwartki/piątki</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Rekomendacje dla projektu AURORA</h4>
+          <ul>
+            <li>Rozmiary M i L powinny być rozbijane na mniejsze increments (cel: skrócenie do &lt;60 dni)</li>
+            <li>Outlier'y wymagają root-cause analizy — czy to blokery zewnętrzne (integracje, decyzje) czy wewnętrzne?</li>
+            <li>Zmienność tempa sugeruje potrzebę stabilizacji procesu zanim AI będzie miał dobre dane do uczenia</li>
+            <li>PCB pokazuje, że z 30 tasks, kilkanaście przekracza 30 dni — prime candidates do wsparcia AI</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ R – REHEARSAL -->
+  <div id="tab-r2" class="tab-content">
+    <div class="section-title">
+      <span class="accent" style="color:#bc8cff">R</span>
+      Rehearsal — Obrona rekomendacji przed interesariuszami
+    </div>
+
+    <div class="rec-box">
+      <h3>🏆 Nasza rekomendacja: Start od AI-Assisted Offer Generator</h3>
+      <p>
+        Spośród wszystkich kandydatów <strong>AI-wspomagany generator ofert dla sprzedaży</strong> daje
+        najlepszy balans: największa wartość biznesowa (bezpośredni wpływ na przychód),
+        najszybszy czas do działającego prototypu (4–6 tygodni), najniższe ryzyko technologiczne
+        (nie wymaga integracji ERP), najniższe ryzyko organizacyjne (sprzedaż jest gotowa)
+        i eliminuje zagrożenie shadow IT. Pozostałe dwa use case'y (prognozowanie popytu i BOK)
+        uruchamiamy sekwencyjnie po potwierdzeniu wartości #1.
+      </p>
+    </div>
+
+    <p style="font-size:0.9rem;color:#8b949e;margin-bottom:16px">
+      Kliknij pytanie, aby rozwinąć przygotowaną odpowiedź dla danego interesariusza:
+    </p>
+
+    <div class="qa-item">
+      <div class="qa-question" onclick="toggleQA(this)">
+        💰 CFO: „Skąd 2,5 mln PLN ROI? Proszę o konkretne liczby, nie szacunki."
+      </div>
+      <div class="qa-answer">
+        <p><strong>Odpowiedź:</strong> Nasze założenia są konserwatywne i jawne. Punktem wyjścia jest pomiar, który zrobimy w pierwszym tygodniu projektu. Na podstawie typowych benchmarków dla firm tej wielkości:</p>
+        <ul>
+          <li>Dziś: ~200 ofert/miesiąc × 5 dni pracy handlowca = 1000 dni-person/miesiąc</li>
+          <li>Po AI: skrócenie do 1 dnia na ofertę = 200 dni-person/miesiąc (oszczędność: 800 dni)</li>
+          <li>Wartość 800 dni pracy sprzedaży w bardziej wartościowych aktywnościach = ~1,2–1,8 mln PLN/rok przy założeniu, że handlowiec obsługuje więcej klientów</li>
+          <li>Dodatkowy efekt: szybsza oferta → wyższy win rate (zakładamy +3–5 pp) → dodatkowe 0,6–1,0 mln PLN</li>
+        </ul>
+        <p style="margin-top:8px">Łącznie konserwatywnie: 1,8–2,8 mln PLN/rok. Pełne dane uzyskamy po 2-tygodniowym pomiarze baseline'u — to pierwszy deliverable projektu.</p>
+      </div>
+    </div>
+
+    <div class="qa-item">
+      <div class="qa-question" onclick="toggleQA(this)">
+        🖥 CIO: „To będzie wymagać integracji z ERP. Nie mamy zasobów. Jak to zrobicie?"
+      </div>
+      <div class="qa-answer">
+        <p><strong>Odpowiedź:</strong> Świadomie projektujemy to z myślą o zasadzie clean core, którą Pan zdefiniował. Architektura MVP w fazie 1:</p>
+        <ul>
+          <li>AI generator pracuje na <em>statycznych</em> danych: katalog produktów (PDF/Excel), szablony ofert, archiwum historycznych ofert — wszystko poza ERP</li>
+          <li>Brak API do ERP na etapie pilotażu — dane cenowe handlowiec weryfikuje ręcznie</li>
+          <li>Narzędzie: Microsoft Copilot Studio lub podobne low-code, wdrożenie przez dostawcę zewnętrznego z naszym oversight</li>
+          <li>Integracja z ERP (personalizacja cen, historia klienta) to faza 2 — po potwierdzeniu wartości i po zakończeniu projektu ERP</li>
+        </ul>
+        <p style="margin-top:8px">Potrzebujemy od IT tylko: dostępu do jednego środowiska testowego i 2h tygodniowo senior architekta do review decyzji. Nie więcej.</p>
+      </div>
+    </div>
+
+    <div class="qa-item">
+      <div class="qa-question" onclick="toggleQA(this)">
+        📊 Sponsor COO: „Dlaczego akurat sprzedaż? Operacje mają równie duże problemy."
+      </div>
+      <div class="qa-answer">
+        <p><strong>Odpowiedź:</strong> Doceniamy znaczenie Operacji i prognozowanie popytu jest w naszym TOP 3. Start od Sprzedaży to decyzja strategiczna z trzech powodów:</p>
+        <ul>
+          <li><strong>Zagrożenie shadow IT:</strong> regionalny dyrektor jest gotowy kupić rozwiązanie poza projektem. Zignorowanie tego sygnału kosztuje nas spójność governance i wiarygodność projektu AURORA</li>
+          <li><strong>Szybkość do dowodu:</strong> generator ofert da namacalny, demostrably working produkt w 4–6 tygodni. To buduje zaufanie rady nadzorczej i CFO przed decyzją o dalszym finansowaniu</li>
+          <li><strong>Ryzyko danych:</strong> Prognozowanie popytu wymaga audytu jakości danych historycznych — to 3–4 tygodnie zanim napiszemy pierwszą linię kodu AI. Nie tracimy czasu; robimy to równolegle jako przygotowanie do fazy 2</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="qa-item">
+      <div class="qa-question" onclick="toggleQA(this)">
+        👥 HR: „Pracownicy boją się AI. Jak zadbamy o to, żeby projekt nie stworzył napięć?"
+      </div>
+      <div class="qa-answer">
+        <p><strong>Odpowiedź:</strong> Mamy plan komunikacji i adopcji zintegrowany z projektem technicznym. Kluczowe elementy:</p>
+        <ul>
+          <li><strong>Współprojektowanie:</strong> handlowcy uczestniczą w warsztatach projektowania asystenta od tygodnia 1 — nie dostają gotowego narzędzia, tylko narzędzie, które sami ukształtowali</li>
+          <li><strong>Narracja:</strong> AI nie zastępuje handlowca — zwalnia go od nudnej pracy, żeby mógł skupić się na budowaniu relacji z klientem (jego prawdziwej przewadze)</li>
+          <li><strong>Early adopters:</strong> wybieramy 3–4 handlowców otwartych na nowe technologie jako pilotażowych ambasadorów</li>
+          <li><strong>Transparentność:</strong> AI nie ocenia pracowników. Metryki projektu mierzą efektywność procesu, nie wydajność konkretnych osób</li>
+          <li><strong>Rola HR:</strong> aktywny partner w komunikacji — prosimy o udział w FAQ dla pracowników i townhall po 30 dniach pilotażu</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="qa-item">
+      <div class="qa-question" onclick="toggleQA(this)">
+        🏪 Biznes / Dyrektor Sprzedaży: „Kiedy zobaczymy coś namacalnego? Mam klientów, którzy nie mogą czekać."
+      </div>
+      <div class="qa-answer">
+        <p><strong>Odpowiedź:</strong> Rozumiemy presję i dlatego nasz harmonogram jest zaprojektowany pod Pana potrzeby:</p>
+        <ul>
+          <li><strong>Tydzień 1–2:</strong> pomiar baseline'u (ile czasu zajmuje oferta dziś, jakie są typowe elementy, co można szablonować)</li>
+          <li><strong>Tydzień 3–4:</strong> warsztat z 5 handlowcami, budowa pierwszego prototypu asystenta (działającego, nie prezentacji)</li>
+          <li><strong>Tydzień 5–6:</strong> pilotaż z 3–4 handlowcami na realnych zapytaniach klientów</li>
+          <li><strong>Tydzień 7:</strong> demo dla Pana i zespołu — prawdziwe oferty przygotowane w ciągu minut, nie dni</li>
+        </ul>
+        <p style="margin-top:8px">W zamian prosimy o jedno: wstrzymanie rozmów z zewnętrznym dostawcą przez 4 tygodnie. Jeśli po tygodniu 7 nasz prototyp nie spełnia Pana oczekiwań, będziemy pierwszymi, którzy powiedzą: „rozmawiaj z zewnętrznym dostawcą".</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>🎯 Pytanie końcowe: jeden kierunek startowy</h3>
+      <p>
+        Gdybyśmy mieli zarekomendować zarządowi DomoLinea jeden i tylko jeden kierunek startowy —
+        wybralibyśmy <strong>AI-Assisted Offer Generator dla sprzedaży</strong>.
+      </p>
+      <p style="margin-top:10px">
+        <strong>Dlaczego właśnie ten?</strong> Bo w tym projekcie zbiegają się cztery warunki sukcesu jednocześnie:
+        (1) jest wyraźny, mierzalny ból (oferty trwają za długo, są tracone konkurencji),
+        (2) istnieje gotowość biznesowa (sprzedaż chce rozwiązania — do tego stopnia, że idzie po nie sama),
+        (3) rozwiązanie jest możliwe w clean core bez integracji ERP,
+        (4) czas do działającego prototypu wynosi 4–6 tygodni, co pozwala pokazać COO i CFO
+        namacalny dowód wartości zanim minie termin decyzji o finansowaniu.
+      </p>
+      <p style="margin-top:10px">
+        To nie jest rekomendacja, bo generowanie ofert to strategicznie najważniejszy obszar.
+        To rekomendacja, bo daje najlepszy balans: <em>wystarczająco duże ROI, wystarczająco szybki dowód,
+        wystarczająco małe ryzyko technologiczne i wystarczająco wysoka gotowość organizacyjna</em> —
+        wszystkie cztery naraz. W transformacji AI to rzadkie połączenie.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    /* ── Tab navigation ─────────────────────────────── */
+    function showTab(id, btn) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + id).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    /* ── Q&A accordion ─────────────────────────────── */
+    function toggleQA(el) {
+      const ans = el.nextElementSibling;
+      const isOpen = ans.classList.contains('open');
+      document.querySelectorAll('.qa-answer').forEach(a => a.classList.remove('open'));
+      document.querySelectorAll('.qa-question').forEach(q => q.classList.remove('open'));
+      if (!isOpen) {
+        ans.classList.add('open');
+        el.classList.add('open');
+      }
+    }
+
+    /* ══════════════════════════════════════════════════
+       CHART DATA
+    ══════════════════════════════════════════════════ */
+
+    /* ── 1. Histogram ─────────────────────────────── */
+    const histogramRaw = [
+      {size:'S', ct:49},{size:'S', ct:48},{size:'S', ct:87},{size:'M', ct:57},{size:'M', ct:148},
+      {size:'S', ct:53},{size:'S', ct:45},{size:'M', ct:145},{size:'L', ct:105},{size:'S', ct:5},
+      {size:'L', ct:163},{size:'S', ct:43},{size:'M', ct:415},{size:'L', ct:123},{size:'M', ct:103},
+      {size:'L', ct:104},{size:'L', ct:302},{size:'L', ct:158},{size:'L', ct:98},{size:'S', ct:52},
+      {size:'M', ct:95},{size:'S', ct:70},{size:'M', ct:95},{size:'M', ct:101},{size:'M', ct:57},
+      {size:'M', ct:57},{size:'S', ct:53},{size:'L', ct:137},{size:'S', ct:73},{size:'M', ct:60},
+      {size:'S', ct:126},{size:'M', ct:57},{size:'L', ct:124},{size:'M', ct:75},{size:'M', ct:89},
+      {size:'S', ct:44}
+    ];
+
+    const bins = [0,20,40,60,80,100,125,150,200,300,500];
+    const binLabels = bins.slice(0,-1).map((b,i) => `${b}–${bins[i+1]}`);
+
+    function toBin(val) {
+      for(let i=0;i<bins.length-1;i++) if(val>=bins[i] && val<bins[i+1]) return i;
+      return bins.length-2;
+    }
+
+    const histS = new Array(bins.length-1).fill(0);
+    const histM = new Array(bins.length-1).fill(0);
+    const histL = new Array(bins.length-1).fill(0);
+    histogramRaw.forEach(d => {
+      const b = toBin(d.ct);
+      if(d.size==='S') histS[b]++;
+      else if(d.size==='M') histM[b]++;
+      else histL[b]++;
+    });
+
+    new Chart(document.getElementById('histChart'), {
+      type: 'bar',
+      data: {
+        labels: binLabels,
+        datasets: [
+          { label: 'S (Small)',  data: histS, backgroundColor: '#39d35388', borderColor: '#39d353', borderWidth: 1 },
+          { label: 'M (Medium)', data: histM, backgroundColor: '#58a6ff88', borderColor: '#58a6ff', borderWidth: 1 },
+          { label: 'L (Large)',  data: histL, backgroundColor: '#f7816688', borderColor: '#f78166', borderWidth: 1 }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color:'#c9d1d9', font:{size:11} } } },
+        scales: {
+          x: { stacked: true, ticks:{color:'#8b949e',font:{size:10}}, grid:{color:'#21262d'} },
+          y: { stacked: true, ticks:{color:'#8b949e',font:{size:10}}, grid:{color:'#21262d'}, beginAtZero:true,
+               title:{display:true,text:'Liczba zadań',color:'#8b949e',font:{size:10}} }
+        }
+      }
+    });
+
+    /* ── 2. Scatterplot ───────────────────────────── */
+    const scatterRaw = [
+      {date:'2024-07-15',size:'S',ct:49},{date:'2024-08-22',size:'S',ct:48},{date:'2024-09-10',size:'S',ct:87},
+      {date:'2024-09-25',size:'M',ct:57},{date:'2024-10-05',size:'M',ct:148},{date:'2024-10-14',size:'S',ct:53},
+      {date:'2024-10-28',size:'S',ct:45},{date:'2024-11-18',size:'M',ct:145},{date:'2024-12-04',size:'L',ct:105},
+      {date:'2025-01-08',size:'S',ct:5},{date:'2025-01-20',size:'L',ct:163},{date:'2025-02-14',size:'S',ct:43},
+      {date:'2025-02-26',size:'M',ct:415},{date:'2025-03-15',size:'L',ct:123},{date:'2025-04-10',size:'M',ct:103},
+      {date:'2025-05-05',size:'L',ct:104},{date:'2025-06-12',size:'L',ct:302},{date:'2025-06-25',size:'L',ct:158},
+      {date:'2025-07-02',size:'L',ct:98},{date:'2025-07-11',size:'S',ct:52},{date:'2025-07-18',size:'M',ct:95},
+      {date:'2025-07-29',size:'S',ct:70},{date:'2025-08-03',size:'M',ct:95},{date:'2025-08-14',size:'M',ct:101},
+      {date:'2025-08-21',size:'M',ct:57},{date:'2025-08-29',size:'M',ct:57},{date:'2025-09-08',size:'S',ct:53},
+      {date:'2025-09-22',size:'L',ct:137},{date:'2025-10-04',size:'S',ct:73},{date:'2025-10-12',size:'M',ct:60},
+      {date:'2025-10-19',size:'S',ct:126},{date:'2025-10-27',size:'M',ct:57},{date:'2025-11-05',size:'L',ct:124},
+      {date:'2025-11-15',size:'M',ct:75},{date:'2025-11-25',size:'M',ct:89},{date:'2025-12-10',size:'S',ct:44}
+    ];
+
+    const colorMap = {S:'#39d353', M:'#58a6ff', L:'#f78166'};
+    const groupScatter = {S:[], M:[], L:[]};
+    scatterRaw.forEach(d => groupScatter[d.size].push({x: new Date(d.date), y: d.ct}));
+
+    // percentile lines
+    const allCT = histogramRaw.map(d=>d.ct).sort((a,b)=>a-b);
+    function pct(arr,p){ const i=Math.floor(p/100*(arr.length-1)); return arr[i]; }
+    const p50=pct(allCT,50), p85=pct(allCT,85);
+
+    new Chart(document.getElementById('scatterChart'), {
+      type: 'scatter',
+      data: {
+        datasets: [
+          { label:'S', data: groupScatter.S, backgroundColor:'#39d35399', borderColor:'#39d353', pointRadius:6 },
+          { label:'M', data: groupScatter.M, backgroundColor:'#58a6ff99', borderColor:'#58a6ff', pointRadius:6 },
+          { label:'L', data: groupScatter.L, backgroundColor:'#f7816699', borderColor:'#f78166', pointRadius:6 }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels:{color:'#c9d1d9',font:{size:11}} },
+          annotation: {
+            annotations: {
+              p50line: { type:'line', yMin:p50, yMax:p50, borderColor:'#39d353', borderWidth:1.5, borderDash:[4,4],
+                label:{content:`P50: ${p50}d`, display:true, color:'#39d353', font:{size:10}, position:'end'} },
+              p85line: { type:'line', yMin:p85, yMax:p85, borderColor:'#e3b341', borderWidth:1.5, borderDash:[4,4],
+                label:{content:`P85: ${p85}d`, display:true, color:'#e3b341', font:{size:10}, position:'end'} }
+            }
+          }
+        },
+        scales: {
+          x: { type:'time', time:{unit:'month'}, ticks:{color:'#8b949e',font:{size:10}}, grid:{color:'#21262d'} },
+          y: { ticks:{color:'#8b949e',font:{size:10}}, grid:{color:'#21262d'}, beginAtZero:true,
+               title:{display:true,text:'Czas realizacji (dni)',color:'#8b949e',font:{size:10}} }
+        }
+      }
+    });
+
+    /* ── 3. Throughput ────────────────────────────── */
+    const throughputRaw = [
+      {d:'2025-01-07',v:0},{d:'2025-01-08',v:2},{d:'2025-01-09',v:10},{d:'2025-01-10',v:3},{d:'2025-01-11',v:0},
+      {d:'2025-01-12',v:0},{d:'2025-01-13',v:2},{d:'2025-01-14',v:3},{d:'2025-01-15',v:7},{d:'2025-01-16',v:0},
+      {d:'2025-01-17',v:0},{d:'2025-01-18',v:0},{d:'2025-01-19',v:0},{d:'2025-01-20',v:5},{d:'2025-01-21',v:2},
+      {d:'2025-01-22',v:0},{d:'2025-01-23',v:0},{d:'2025-01-24',v:0},{d:'2025-01-25',v:0},{d:'2025-01-26',v:0},
+      {d:'2025-01-27',v:1},{d:'2025-01-28',v:1},{d:'2025-01-29',v:0},{d:'2025-01-30',v:5},{d:'2025-01-31',v:4},
+      {d:'2025-02-01',v:0},{d:'2025-02-02',v:0},{d:'2025-02-03',v:7},{d:'2025-02-04',v:0},{d:'2025-02-05',v:2},
+      {d:'2025-02-06',v:2},{d:'2025-02-07',v:12},{d:'2025-02-08',v:0},{d:'2025-02-09',v:0},{d:'2025-02-10',v:1},
+      {d:'2025-02-11',v:0},{d:'2025-02-12',v:0},{d:'2025-02-13',v:2},{d:'2025-02-14',v:12},{d:'2025-02-15',v:0},
+      {d:'2025-02-16',v:0},{d:'2025-02-17',v:1},{d:'2025-02-18',v:0},{d:'2025-02-19',v:0},{d:'2025-02-20',v:3},
+      {d:'2025-02-21',v:11},{d:'2025-02-22',v:0},{d:'2025-02-23',v:0},{d:'2025-02-24',v:6},{d:'2025-02-25',v:0},
+      {d:'2025-02-26',v:0},{d:'2025-02-27',v:6},{d:'2025-02-28',v:7},{d:'2025-03-01',v:0},{d:'2025-03-02',v:0},
+      {d:'2025-03-03',v:2},{d:'2025-03-04',v:0},{d:'2025-03-05',v:0},{d:'2025-03-06',v:3},{d:'2025-03-07',v:5},
+      {d:'2025-03-08',v:0},{d:'2025-03-09',v:0},{d:'2025-03-10',v:1},{d:'2025-03-11',v:0},{d:'2025-03-12',v:0},
+      {d:'2025-03-13',v:9},{d:'2025-03-14',v:7},{d:'2025-03-15',v:0},{d:'2025-03-16',v:0},{d:'2025-03-17',v:3},
+      {d:'2025-03-18',v:0},{d:'2025-03-19',v:0},{d:'2025-03-20',v:4},{d:'2025-03-21',v:10},{d:'2025-03-22',v:0},
+      {d:'2025-03-23',v:0},{d:'2025-03-24',v:1},{d:'2025-03-25',v:0},{d:'2025-03-26',v:0},{d:'2025-03-27',v:5},
+      {d:'2025-03-28',v:1},{d:'2025-03-29',v:0},{d:'2025-03-30',v:0},{d:'2025-03-31',v:2},{d:'2025-04-01',v:0},
+      {d:'2025-04-02',v:0},{d:'2025-04-03',v:2},{d:'2025-04-04',v:11},{d:'2025-04-05',v:0},{d:'2025-04-06',v:0},
+      {d:'2025-04-07',v:1},{d:'2025-04-08',v:0},{d:'2025-04-09',v:0},{d:'2025-04-10',v:5},{d:'2025-04-11',v:2},
+      {d:'2025-04-12',v:0},{d:'2025-04-13',v:0},{d:'2025-04-14',v:1},{d:'2025-04-15',v:0},{d:'2025-04-16',v:0},
+      {d:'2025-04-17',v:4},{d:'2025-04-18',v:7}
+    ];
+
+    // 7-day rolling average
+    const tDates = throughputRaw.map(d=>new Date(d.d));
+    const tVals  = throughputRaw.map(d=>d.v);
+    const tRolling = tVals.map((_,i) => {
+      const start = Math.max(0, i-6);
+      const slice = tVals.slice(start, i+1);
+      return +(slice.reduce((a,b)=>a+b,0)/slice.length).toFixed(1);
+    });
+
+    new Chart(document.getElementById('throughputChart'), {
+      data: {
+        labels: tDates,
+        datasets: [
+          { type:'bar',  label:'Przepustowość dzienna', data: tVals,    backgroundColor:'#58a6ff44', borderColor:'#58a6ff55', borderWidth:1 },
+          { type:'line', label:'7-dniowa śr. krocząca', data: tRolling, borderColor:'#e3b341', borderWidth:2, pointRadius:0, tension:0.3, fill:false }
+        ]
+      },
+      options: {
+        responsive:true,
+        plugins:{ legend:{labels:{color:'#c9d1d9',font:{size:11}}} },
+        scales:{
+          x:{ type:'time', time:{unit:'month'}, ticks:{color:'#8b949e',font:{size:10}}, grid:{color:'#21262d'} },
+          y:{ ticks:{color:'#8b949e',font:{size:10}}, grid:{color:'#21262d'}, beginAtZero:true,
+              title:{display:true,text:'Liczba elementów',color:'#8b949e',font:{size:10}} }
+        }
+      }
+    });
+
+    /* ── 4. PCB ───────────────────────────────────── */
+    const pcbRaw = [
+      {id:1,ct:38},{id:2,ct:24},{id:3,ct:14},{id:4,ct:9},{id:5,ct:4},{id:6,ct:25},{id:7,ct:19},
+      {id:8,ct:51},{id:9,ct:48},{id:10,ct:15},{id:11,ct:22},{id:12,ct:42},{id:13,ct:17},{id:14,ct:7},
+      {id:15,ct:5},{id:16,ct:20},{id:17,ct:63},{id:18,ct:6},{id:19,ct:56},{id:20,ct:24},{id:21,ct:22},
+      {id:22,ct:50},{id:23,ct:8},{id:24,ct:2},{id:25,ct:3},{id:26,ct:8},{id:27,ct:36},{id:28,ct:27},
+      {id:29,ct:29},{id:30,ct:20}
+    ];
+    const pcbCTs = pcbRaw.map(d=>d.ct).sort((a,b)=>a-b);
+    const pcbP50 = pct(pcbCTs,50), pcbP85 = pct(pcbCTs,85);
+
+    const pcbColors = pcbRaw.map(d => d.ct > pcbP85 ? '#f78166cc' : d.ct > pcbP50 ? '#e3b341cc' : '#39d353cc');
+
+    new Chart(document.getElementById('pcbChart'), {
+      type:'bar',
+      data:{
+        labels: pcbRaw.map(d=>`#${d.id}`),
+        datasets:[{ label:'Cycle Time (dni)', data:pcbRaw.map(d=>d.ct), backgroundColor:pcbColors, borderWidth:0 }]
+      },
+      options:{
+        responsive:true,
+        plugins:{
+          legend:{display:false},
+          annotation:{
+            annotations:{
+              pcbP50:{ type:'line',yMin:pcbP50,yMax:pcbP50,borderColor:'#39d353',borderWidth:1.5,borderDash:[4,4],
+                label:{content:`P50: ${pcbP50}d`,display:true,color:'#39d353',font:{size:10},position:'end'}},
+              pcbP85:{ type:'line',yMin:pcbP85,yMax:pcbP85,borderColor:'#e3b341',borderWidth:1.5,borderDash:[4,4],
+                label:{content:`P85: ${pcbP85}d`,display:true,color:'#e3b341',font:{size:10},position:'end'}}
+            }
+          }
+        },
+        scales:{
+          x:{ticks:{color:'#8b949e',font:{size:9}},grid:{color:'#21262d'}},
+          y:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'#21262d'},beginAtZero:true,
+             title:{display:true,text:'Cycle Time (dni)',color:'#8b949e',font:{size:10}}}
+        }
+      }
+    });
+  </script>
+</body>
+</html>
