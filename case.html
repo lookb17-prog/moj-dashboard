@@ -395,6 +395,40 @@
     }
     .rec-box h3 { color: #39d353; margin-bottom: 10px; }
     .rec-box p  { font-size: 0.9rem; line-height: 1.65; color: #c9d1d9; }
+
+    /* ── Links ───────────────────────────────────────── */
+    a { color: #58a6ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Comm plan calendar ──────────────────────────── */
+    .comm-calendar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .comm-week {
+      flex: 1;
+      min-width: 210px;
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .comm-week-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .comm-week ul { font-size: 0.82rem; padding-left: 16px; }
+    .comm-week li { margin-bottom: 4px; color: #c9d1d9; }
+    .cw-green  { background: #12261e; border: 1px solid #39d35344; }
+    .cw-blue   { background: #0d1d35; border: 1px solid #58a6ff44; }
+    .cw-yellow { background: #231a00; border: 1px solid #e3b34144; }
+    .cw-purple { background: #1a0e2e; border: 1px solid #bc8cff44; }
+    .insight-box-green  { background: #12261e; border: 1px solid #39d35344; border-radius: 8px; padding: 14px 16px; margin-top: 14px; }
+    .insight-box-blue   { background: #0d1d35; border: 1px solid #58a6ff44; border-radius: 8px; padding: 14px 16px; margin-top: 14px; }
+    .insight-box-red    { background: #2a1010; border: 1px solid #f7816644; border-radius: 8px; padding: 14px 16px; margin-top: 14px; }
   </style>
 </head>
 <body>
@@ -572,6 +606,115 @@
           <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#e3b341;margin-bottom:6px">Sygnał 3 — Rynek pracy i adopcja AI</div>
           <p style="font-size:0.85rem;color:#c9d1d9">Wg badań europejskich organizacji, <strong>firmy budujące kompetencje AI w 2025–2026</strong> notują +15–25% efektywności pracy knowledge workers w ciągu 12 miesięcy. Okno adopcyjne się zawęża — early movers zyskują nie tylko narzędzia, ale know-how i kulturę pracy z AI.</p>
         </div>
+      </div>
+    </div>
+
+    <!-- ── Market environment analysis ─────────────── -->
+    <div class="card">
+      <h3>🌍 Analiza rynkowego otoczenia DomoLinea Group</h3>
+      <p style="font-size:0.85rem;color:#8b949e;margin-bottom:14px">
+        Na podstawie: <em>Market analysis for a DomoLinea-type interior furnishings group in Poland and CEE</em> (2025).
+        Wszystkie dane liczbowe pochodzą z publicznie dostępnych raportów — źródła podane przy każdym fakcie.
+      </p>
+
+      <h4>Makro-otoczenie: polska branża meblarska</h4>
+      <div class="three-col" style="margin-top:10px;margin-bottom:16px">
+        <div style="background:#21262d;border-radius:8px;padding:14px 16px">
+          <div style="font-size:1.6rem;font-weight:800;color:#39d353;margin-bottom:4px">#2</div>
+          <div style="font-size:0.82rem;color:#c9d1d9">największy eksporter mebli na świecie (1. w Europie). Wartość eksportu ~15,94 mld USD w 2024 r.; ~32 000 producentów, ~196 000 zatrudnionych.</div>
+          <div style="font-size:0.72rem;color:#8b949e;margin-top:6px">Źródło: <a href="https://www.paih.gov.pl/wp-content/uploads/2025/08/The-Furniture-Sector-2025.pdf" target="_blank">PAIH, The Furniture Sector 2025</a></div>
+        </div>
+        <div style="background:#21262d;border-radius:8px;padding:14px 16px">
+          <div style="font-size:1.6rem;font-weight:800;color:#e3b341;margin-bottom:4px">64 mld PLN</div>
+          <div style="font-size:0.82rem;color:#c9d1d9">produkcja sprzedana polskiego przemysłu meblowego w 2024 r. — spadek o ~4% r/r. Eksport w dół o ~6%, import w górę o >10%. Wysokie koszty energii i ograniczone zasoby drewna.</div>
+          <div style="font-size:0.72rem;color:#8b949e;margin-top:6px">Źródło: <a href="https://www.drewno.pl/artykuly/polska-branza-meblarska-spadek-rentownosci-wysokie-koszty-energii-oraz-ograniczona-dostepnosc-surowca-drzewnego-13259.html" target="_blank">OIGPM/B+R Studio via Drewno.pl</a></div>
+        </div>
+        <div style="background:#21262d;border-radius:8px;padding:14px 16px">
+          <div style="font-size:1.6rem;font-weight:800;color:#f78166;margin-bottom:4px">€887 mld</div>
+          <div style="font-size:0.82rem;color:#c9d1d9">wartość europejskiego e-commerce B2C w 2023 r. (+3% r/r). Wzrost hamowany przez inflację i konkurencję cenową z Azji. Dla graczy e-commerce: walka o każdy punkt konwersji.</div>
+          <div style="font-size:0.72rem;color:#8b949e;margin-top:6px">Źródło: <a href="https://ecommerce-europe.eu/wp-content/uploads/2024/10/CMI2024_Complete_light_v1.pdf" target="_blank">Ecommerce Europe, European E-commerce Report 2024</a></div>
+        </div>
+      </div>
+
+      <h4>Kluczowe presje konkurencyjne</h4>
+      <ul style="margin-top:8px">
+        <li><strong>Marżowość pod presją kosztową:</strong> Drogie drewno, wysokie koszty energii i pracy osłabiają konkurencyjność polskich producentów — potwierdzone przez OIGPM/B+R Studio i komentarze branżowe. CSIL charakteryzuje 2024 jako szczególnie trudny rok dla europejskiego meblarstwa. (<a href="https://www.csilmilano.com/global-furniture-industry/" target="_blank">CSIL, Global Furniture Industry 2024</a>)</li>
+        <li><strong>Czas reakcji jako produkt:</strong> Klienci B2B projektowi (hotele, biura, deweloperzy) traktują czas odpowiedzi na zapytanie ofertowe jako kryterium wyboru dostawcy — porównywalny z ceną i jakością. Spóźnione oferty wprost przekładają się na utratę przetargów.</li>
+        <li><strong>Presja e-commerce:</strong> Dunelm (UK) publicznie przyznaje, że „porzucenie wyszukiwania na stronie kosztuje detalistów miliony funtów rocznie", gdy klienci nie znajdują produktów. Dla firm takich jak DomoLinea operujących częściowo online, każda luka w wyszukiwaniu i opisach produktów to utracony przychód. (<a href="https://corporate.dunelm.com/media/mmzlit4l/dunelm-google-cloud-release.pdf" target="_blank">Dunelm + Google Cloud, 2024</a>)</li>
+        <li><strong>Łańcuchy dostaw:</strong> CSIL wskazuje na utrzymujące się wyzwania normalizacji łańcuchów dostaw i ryzyko geopolityczne. Klienci nagradzają dostawców, którzy dotrzymują obietnic terminów i szybko reagują na zmiany.</li>
+      </ul>
+
+      <h4 style="margin-top:16px">Otoczenie regulacyjne — nowe zmienne od 2024</h4>
+      <div class="two-col" style="margin-top:8px">
+        <div style="background:#21262d;border-radius:8px;padding:14px 16px">
+          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#e3b341;margin-bottom:6px">ESPR — od 18 lipca 2024</div>
+          <p style="font-size:0.82rem;color:#c9d1d9">Rozporządzenie o ekoprojektowaniu (ESPR) obowiązuje od 18 lipca 2024, z działaniami produktowymi od 19 lipca 2025. Wymogi: Digital Product Passport (DPP), kompletność danych o cyklu życia produktu. Dla DomoLinea to silny argument biznesowy do inwestycji w jakość danych produktowych jako infrastrukturę — nie tylko koszt compliance.</p>
+          <div style="font-size:0.72rem;color:#8b949e;margin-top:6px">Źródło: <a href="https://eur-lex.europa.eu/EN/legal-content/summary/ecodesign-requirements-for-sustainable-products.html" target="_blank">EUR-Lex, ESPR Summary</a></div>
+        </div>
+        <div style="background:#21262d;border-radius:8px;padding:14px 16px">
+          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#f78166;margin-bottom:6px">AI Act UE — od ~sierpnia 2026</div>
+          <p style="font-size:0.82rem;color:#c9d1d9">Kluczowe przepisy AI Act (art. 50 — wymogi transparentności; systemy wysokiego ryzyka z Annexu III) wchodzą w życie ok. sierpnia 2026. Nawet systemy niezakwalifikowane jako high-risk wymagają artefaktów governance: ocena modelu, nadzór ludzki, ślad audytowy. Wymóg dla AURORY: projektowanie z myślą o compliance <em>od fazy discovery</em> — nie na etapie wdrożenia produkcyjnego.</p>
+          <div style="font-size:0.72rem;color:#8b949e;margin-top:6px">Źródło: <a href="https://ai-act-service-desk.ec.europa.eu/en/ai-act/timeline/timeline-implementation-eu-ai-act" target="_blank">European Commission AI Act Service Desk</a></div>
+        </div>
+      </div>
+
+      <h4 style="margin-top:16px">Udokumentowane wdrożenia AI w analogicznych firmach — dowody rynkowe</h4>
+      <p style="font-size:0.82rem;color:#8b949e;margin-bottom:12px">Poniższe przypadki są publicznie dostępne, dotyczą firm z sektora wyposażenia wnętrz/mebli i zawierają mierzalne wyniki. Stanowią punkt odniesienia dla oceny ambicji projektu AURORA.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Firma / Use case</th>
+              <th>Co wdrożono</th>
+              <th>Zmierzony efekt</th>
+              <th>Źródło</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Dunelm + Google Cloud</strong><br><span style="font-size:0.75rem;color:#8b949e">Wyszukiwanie produktów AI</span></td>
+              <td>Przejście z tradycyjnej wyszukiwarki na Vertex AI Search for Retail (GenAI product discovery)</td>
+              <td>Wczesne testy: &lt;1% zapytań bez wyników → redukcja „search friction"</td>
+              <td><a href="https://corporate.dunelm.com/media/mmzlit4l/dunelm-google-cloud-release.pdf" target="_blank" style="font-size:0.75rem">corporate.dunelm.com</a></td>
+            </tr>
+            <tr>
+              <td><strong>Freedom Furniture + Zendesk AI</strong><br><span style="font-size:0.75rem;color:#8b949e">AI triage BOK + agent assist</span></td>
+              <td>Zendesk AI do triażu zgłoszeń, podsumowań, generowania odpowiedzi (tone/expand)</td>
+              <td>−92% ręcznego triażu; −74% czasu pierwszej odpowiedzi; −92% czasu pełnego rozwiązania; +17 pp CSAT</td>
+              <td><a href="https://www.zendesk.co.uk/customer/freedom-furniture/" target="_blank" style="font-size:0.75rem">zendesk.co.uk</a></td>
+            </tr>
+            <tr>
+              <td><strong>HCLTech: globalna firma meblarska</strong><br><span style="font-size:0.75rem;color:#8b949e">AI-led returns automation</span></td>
+              <td>Agentic AI workflow (Azure AI) do obsługi zwrotów: walidacja polityki, ocena fraudów, routing wyjątków, human-in-the-loop</td>
+              <td>+50% szybkości przetwarzania zwrotów; −30% false positives (fraud); +20% CX</td>
+              <td><a href="https://www.hcltech.com/case-study/ai-led-returns-automation-for-home-furnishings-retailer" target="_blank" style="font-size:0.75rem">hcltech.com</a></td>
+            </tr>
+            <tr>
+              <td><strong>C3.ai: retailer wyposażenia wnętrz (B2B)</strong><br><span style="font-size:0.75rem;color:#8b949e">AI pricing optimization</span></td>
+              <td>AI-driven pricing guidance; &gt;7 mln wierszy danych historycznych; krzywe elastyczności cen; testy A/B i randomizowane</td>
+              <td>„Wyniki w 3 miesiące"; +$15M+ przychodów; +2 pp win rate; +$3M+ marży; spadek ofert poniżej min. ceny z 80% do niemal 0%</td>
+              <td><a href="https://c3.ai/wp-content/uploads/2025/04/24_0331_C3_AI_Case_Study_Home_Furnishings_Retailer_PO-1-1.pdf" target="_blank" style="font-size:0.75rem">c3.ai</a></td>
+            </tr>
+            <tr>
+              <td><strong>Prohan + DAC.digital</strong><br><span style="font-size:0.75rem;color:#8b949e">Computer vision — kontrola jakości drewna</span></td>
+              <td>CV do inspekcji wad klejonego drewna litego; wdrożenie on-site przy prędkości taśmy do 30 m/s; 24/7 monitoring</td>
+              <td>Wdrożenie w ~4 miesiące; +90% wykrywalność wad; braki (scrap) z ~5% do &lt;0,5%; zero zwrotów z tego typu wad</td>
+              <td><a href="https://dac.digital/case-studies/computer-vision-system-achieves-90-defect-detection-in-wood-furniture-production/" target="_blank" style="font-size:0.75rem">dac.digital</a></td>
+            </tr>
+            <tr>
+              <td><strong>Hexaware: dystrybutor z obszernym katalogiem</strong><br><span style="font-size:0.75rem;color:#8b949e">GenAI opisy produktów na skalę</span></td>
+              <td>PaLM 2 do generowania opisów i ekstrakcji atrybutów; multi-channel i multi-audience; 61 000+ SKU</td>
+              <td>−75% ręcznego nakładu pracy; +25% widoczności w wyszukiwarkach; +20% konwersji</td>
+              <td><a href="https://hexaware.com/case-study/gen-ai-powered-product-descriptions/" target="_blank" style="font-size:0.75rem">hexaware.com</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="insight-box-green">
+        <p style="font-size:0.85rem;color:#c9d1d9">
+          <strong style="color:#39d353">Wniosek rynkowy dla AURORY:</strong> Dokumentacja rynkowa jednoznacznie wskazuje, że firmy z sektora wyposażenia wnętrz osiągają mierzalne wyniki z AI w horyzoncie <strong>3–6 miesięcy</strong> — szczególnie w obszarach: obsługa klienta (BOK), pricing B2B i jakość treści produktowych. Projekty złożone (supply chain, forecasting) wymagają 12–24 miesięcy. Kluczowy warunek sukcesu powtarzający się we wszystkich przytoczonych przypadkach: <em>jakość danych wejściowych i zaangażowanie użytkowników końcowych od pierwszego dnia.</em>
+        </p>
       </div>
     </div>
 
@@ -887,6 +1030,98 @@ ODRZUCONE:
       <canvas id="pcbChart" height="160"></canvas>
     </div>
 
+    <!-- ── Market benchmark: delivery times ─────────── -->
+    <div class="card">
+      <h3>📊 Benchmark rynkowy: czasy realizacji analogicznych projektów AI</h3>
+      <p style="font-size:0.85rem;color:#8b949e;margin-bottom:14px">
+        Poniższe dane pochodzą z publicznie dostępnych case studies firm z sektora wyposażenia wnętrz i handlu meblami.
+        Stanowią rynkowy punkt odniesienia dla oceny realistyczności 90-dniowego harmonogramu projektu AURORA.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Projekt / Firma</th>
+              <th>Typ use case</th>
+              <th>Czas do pierwszych wyników</th>
+              <th>Czas pełnego wdrożenia</th>
+              <th>Źródło</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>C3.ai / retailer wyposażenia wnętrz B2B</strong></td>
+              <td>AI pricing optimization (B2B, dyskontowanie ofert)</td>
+              <td><span class="badge badge-green">~3 miesiące</span></td>
+              <td>3–6 miesięcy (A/B + pełna skalowalność)</td>
+              <td><a href="https://c3.ai/wp-content/uploads/2025/04/24_0331_C3_AI_Case_Study_Home_Furnishings_Retailer_PO-1-1.pdf" target="_blank" style="font-size:0.75rem">c3.ai case study</a></td>
+            </tr>
+            <tr>
+              <td><strong>Prohan + DAC.digital</strong><br><span style="font-size:0.75rem;color:#8b949e">producent mebli drewnianych, Polska</span></td>
+              <td>Computer vision — kontrola jakości produkcji</td>
+              <td><span class="badge badge-green">~4 miesiące</span></td>
+              <td>4 miesiące (end-to-end: ocena środowiska → wdrożenie produkcyjne)</td>
+              <td><a href="https://dac.digital/case-studies/computer-vision-system-achieves-90-defect-detection-in-wood-furniture-production/" target="_blank" style="font-size:0.75rem">dac.digital case study</a></td>
+            </tr>
+            <tr>
+              <td><strong>Freedom Furniture + Zendesk AI</strong><br><span style="font-size:0.75rem;color:#8b949e">retailer wyposażenia wnętrz</span></td>
+              <td>AI triage + agent assist (BOK, CX)</td>
+              <td><span class="badge badge-green">4–8 tygodni (POC)</span></td>
+              <td>Skalowanie po POC; pełne wdrożenie w kwartale</td>
+              <td><a href="https://www.zendesk.co.uk/customer/freedom-furniture/" target="_blank" style="font-size:0.75rem">zendesk.co.uk</a></td>
+            </tr>
+            <tr>
+              <td><strong>Hexaware / dystrybutor z obszernym katalogiem</strong></td>
+              <td>GenAI opisy produktów (61 000 SKU)</td>
+              <td><span class="badge badge-blue">6–8 tygodni (prototyp)</span></td>
+              <td>3–4 miesiące (pełny katalog)</td>
+              <td><a href="https://hexaware.com/case-study/gen-ai-powered-product-descriptions/" target="_blank" style="font-size:0.75rem">hexaware.com</a></td>
+            </tr>
+            <tr>
+              <td><strong>HCLTech + Blue Yonder / globalny retailer mebli</strong></td>
+              <td>Supply chain forecasting + control tower</td>
+              <td><span class="badge badge-yellow">6–12 miesięcy</span></td>
+              <td>12–24 miesiące (end-to-end)</td>
+              <td><a href="https://www.hcltech.com/sites/default/files/document/open/blue-yonder-2023/case-study/Transforming-SCM_Furniture-giant.pdf" target="_blank" style="font-size:0.75rem">hcltech.com</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4 style="margin-top:18px">Porównanie z danymi wewnętrznymi projektu AURORA</h4>
+      <div class="two-col" style="margin-top:8px">
+        <div style="background:#21262d;border-radius:8px;padding:14px 16px">
+          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#e3b341;margin-bottom:8px">Dane wewnętrzne (projekt AURORA — CSV)</div>
+          <ul style="font-size:0.82rem">
+            <li>Mediana cyklu realizacji zadań: <strong>71 dni</strong></li>
+            <li>85. percentyl: <strong>124 dni</strong></li>
+            <li>Zadania L (duże): mediana ~124 dni</li>
+            <li>Outlier'y (&gt;200 dni): 3 zadania na 36</li>
+            <li>Śr. tygodniowa przepustowość: <strong>3,8 elem/tydz</strong></li>
+          </ul>
+        </div>
+        <div style="background:#21262d;border-radius:8px;padding:14px 16px">
+          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#39d353;margin-bottom:8px">Benchmark rynkowy (analogiczne projekty AI)</div>
+          <ul style="font-size:0.82rem">
+            <li>Fast-track POC (BOK / pricing AI): <strong>4–8 tygodni</strong></li>
+            <li>Pełne wdrożenie prostego use case: <strong>3–4 miesiące</strong></li>
+            <li>Złożone projekty (forecasting, CV produkcja): <strong>4–12 miesięcy</strong></li>
+            <li>90-dniowy cel AURORY: <strong style="color:#39d353">mieści się w benchmarku fast-track</strong></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="insight-box-blue">
+        <p style="font-size:0.85rem;color:#c9d1d9">
+          <strong style="color:#58a6ff">Wniosek:</strong> Wewnętrzna mediana czasu realizacji zadań (71 dni) jest <em>wyższa</em> niż czas realizacji rynkowych fast-track POC (4–8 tygodni = 28–56 dni).
+          Oznacza to, że projekt AURORA musi aktywnie zarządzać zmiennością: rozbijać większe zadania (L) na increments poniżej 30 dni i eliminować blokery odpowiedzialne za outlier'y (&gt;200 dni).
+          Rynkowe case studies potwierdzają, że 90-dniowy harmonogram discovery + POC jest realistyczny — <em>pod warunkiem</em>,
+          że pierwsze 2 tygodnie są poświęcone pomiarowi baseline i ocenie jakości danych, a nie budowie produktu.
+          Potwierdzają to zarówno przypadek C3.ai (pricing, wyniki w 3 miesiące) jak i Prohan (CV, wdrożenie w 4 miesiące) — oba zaczynały od rzetelnej oceny środowiska danych i procesów.
+        </p>
+      </div>
+    </div>
+
     <div class="card">
       <h3>💡 Co ten dashboard mówi o projekcie AURORA?</h3>
       <div class="two-col">
@@ -1010,6 +1245,195 @@ ODRZUCONE:
           <li><strong>Tydzień 7:</strong> demo dla Pana i zespołu — prawdziwe oferty przygotowane w ciągu minut, nie dni</li>
         </ul>
         <p style="margin-top:8px">W zamian prosimy o jedno: wstrzymanie rozmów z zewnętrznym dostawcą przez 4 tygodnie. Jeśli po tygodniu 7 nasz prototyp nie spełnia Pana oczekiwań, będziemy pierwszymi, którzy powiedzą: „rozmawiaj z zewnętrznym dostawcą".</p>
+      </div>
+    </div>
+
+    <!-- ── Stakeholder Communication Plan ───────────── -->
+    <div class="card" style="margin-top:18px">
+      <h3>📢 Plan komunikacji z interesariuszami — projekt AURORA</h3>
+      <p style="font-size:0.85rem;color:#8b949e;margin-bottom:16px">
+        Szczegółowy 90-dniowy plan komunikacji oparty o mapę interesariuszy, kluczowe ryzyka projektu i wnioski z rynkowych case studies
+        (szczególnie: potrzeba szybkiego POC dla Dyrektora Sprzedaży i zarządzania oporem adopcyjnym przez HR).
+      </p>
+
+      <h4>Macierz komunikacji — interesariusze kluczowi</h4>
+      <div class="table-wrap" style="margin-top:8px">
+        <table>
+          <thead>
+            <tr>
+              <th>Interesariusz</th>
+              <th>Cel komunikacji</th>
+              <th>Kluczowy przekaz</th>
+              <th>Kanał</th>
+              <th>Częstotliwość</th>
+              <th>Właściciel</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Prezes</strong></td>
+              <td>Budowanie zaufania; informowanie o postępie i wartości</td>
+              <td>„Projekt jest na torze; pierwsze mierzalne efekty w tygodniu 7"</td>
+              <td>Executive summary (1 strona PDF)</td>
+              <td>Co 3 tygodnie (tyg. 3, 6, 9, 12)</td>
+              <td>COO / Anna Wrońska</td>
+            </tr>
+            <tr>
+              <td><strong>COO (Sponsor)</strong></td>
+              <td>Decyzje eskalacyjne; odblokowywanie zasobów</td>
+              <td>„Status, ryzyka, decyzje potrzebne od Ciebie"</td>
+              <td>Weekly check-in (30 min)</td>
+              <td>Co tydzień</td>
+              <td>Anna Wrońska</td>
+            </tr>
+            <tr>
+              <td><strong>CFO</strong></td>
+              <td>Utrzymanie finansowania; potwierdzenie ROI</td>
+              <td>„Dane baseline w tyg. 2; pełna wycena ROI w tyg. 8 — jawne założenia, nie szacunki z sufitu"</td>
+              <td>Spotkanie 1:1 + raport finansowy</td>
+              <td>Tyg. 1 (kickoff), 2 (baseline), 8 (ROI update), 12 (final)</td>
+              <td>Anna Wrońska + Finanse</td>
+            </tr>
+            <tr>
+              <td><strong>CIO</strong></td>
+              <td>Zachowanie zasady clean core; wczesna identyfikacja blokerów IT</td>
+              <td>„MVP nie dotyka ERP; potrzebujemy środowiska testowego i 2h/tydz architekta"</td>
+              <td>Technical brief + spotkanie architektoniczne</td>
+              <td>Tyg. 1 (brief), tyg. 3 (arch. review), ad hoc przy blokadach</td>
+              <td>Anna Wrońska + Lead Dev</td>
+            </tr>
+            <tr>
+              <td><strong>Dyrektor Sprzedaży</strong></td>
+              <td>Utrzymanie zaangażowania; zapobieganie shadow IT przez szybki deliverable</td>
+              <td>„Demo działającego prototypu w tygodniu 7 — konkretne oferty generowane w minutach, nie prezentacje"</td>
+              <td>Demo live + tygodniowy update (Teams/e-mail)</td>
+              <td>Co tydzień (update); tyg. 3, 7, 10 (demo/review)</td>
+              <td>Anna Wrońska</td>
+            </tr>
+            <tr>
+              <td><strong>HR</strong></td>
+              <td>Zarządzanie zmianą; zapobieganie oporu; budowanie ambasadorów AI</td>
+              <td>„AI wspiera handlowców — nie zastępuje; pracownicy są współtwórcami narzędzia"</td>
+              <td>Workshop + FAQ dla pracowników + townhall</td>
+              <td>Tyg. 1 (kick-off z HR), tyg. 4 (FAQ launch), tyg. 8 (townhall)</td>
+              <td>HR + Anna Wrońska</td>
+            </tr>
+            <tr>
+              <td><strong>Handlowcy (end users)</strong></td>
+              <td>Współprojektowanie; adopcja; zbieranie feedbacku procesowego</td>
+              <td>„Wasze doświadczenie kształtuje to narzędzie — nie dostajecie gotowego produktu, projektujecie go z nami"</td>
+              <td>Warsztaty + kanał Teams/Slack + pilotaż z realnymi ofertami</td>
+              <td>Warsztaty: tyg. 2, 4; pilotaż: tyg. 5–7; feedback: co tydzień</td>
+              <td>Anna Wrońska + champion handlowiec</td>
+            </tr>
+            <tr>
+              <td><strong>Wszyscy pracownicy</strong></td>
+              <td>Redukcja obaw adopcyjnych (23% boi się, 46% ostrożnych); transparentność</td>
+              <td>„DomoLinea buduje AI jako narzędzie dla ludzi — nie zastępstwo. Wasze pytania mają odpowiedzi."</td>
+              <td>Townhall + FAQ intranetowe + wewnętrzny newsletter</td>
+              <td>Tyg. 4 (FAQ launch), tyg. 8 (townhall po pilotażu), tyg. 12 (wyniki)</td>
+              <td>HR + Zarząd</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4 style="margin-top:20px">Kalendarz komunikacji — 90 dni</h4>
+      <div class="comm-calendar" style="margin-top:10px">
+        <div class="comm-week cw-green">
+          <div class="comm-week-label" style="color:#39d353">Tydzień 1–2 — Kickoff &amp; Baseline</div>
+          <ul>
+            <li>Kickoff meeting z COO, CFO, CIO, Dyr. Sprzedaży (cele, reguły gry, harmonogram)</li>
+            <li>Rozmowy 1:1 z każdym interesariuszem — zebranie oczekiwań i obaw</li>
+            <li>Uruchomienie kanału projektowego (Teams/Slack) — centrum informacji</li>
+            <li>Pomiar baseline: czas przygotowania oferty dziś (deliverable: liczba dni, liczba ofert/mies.)</li>
+            <li>Kick-off z HR — plan change management, ustalenie ambasadorów</li>
+            <li>Rekrutacja 3–4 handlowców-pilotów (early adopters, ochotnicy)</li>
+            <li>Raport baseline → CFO (tyg. 2): transparentne założenia ROI</li>
+          </ul>
+        </div>
+        <div class="comm-week cw-blue">
+          <div class="comm-week-label" style="color:#58a6ff">Tydzień 3–5 — Build &amp; First Prototype</div>
+          <ul>
+            <li>Weekly update COO (30 min) — status, ryzyka, decyzje</li>
+            <li>Architecture review z CIO (tyg. 3) — potwierdzenie clean core</li>
+            <li>Warsztat projektowania z handlowcami (tyg. 3–4) — user stories, przypadki użycia</li>
+            <li>FAQ dla pracowników — launch przez HR (tyg. 4): co to jest AI, jak będzie używane</li>
+            <li>Executive summary #1 dla Prezesa (tyg. 3): postęp + wstępne dane baseline</li>
+            <li>Update Dyr. Sprzedaży (tyg. 4): prototyp w budowie, termin demo potwierdzony</li>
+          </ul>
+        </div>
+        <div class="comm-week cw-yellow">
+          <div class="comm-week-label" style="color:#e3b341">Tydzień 6–8 — Pilot &amp; ROI Validation</div>
+          <ul>
+            <li>Demo live dla Dyrektora Sprzedaży (tyg. 7) — realne oferty wygenerowane w minutach</li>
+            <li>Raport ROI update dla CFO (tyg. 8) — dane pilotażowe vs. baseline</li>
+            <li>Executive summary #2 dla Prezesa (tyg. 6): wyniki pilotażu, decyzje</li>
+            <li>Townhall dla pracowników z HR (tyg. 8): wyniki, co dalej, sesja Q&amp;A</li>
+            <li>Tygodniowe weekly updates COO (ciągłe)</li>
+            <li>Zbieranie feedbacku pilotażowego od handlowców — wskaźnik akceptacji, NPS</li>
+          </ul>
+        </div>
+        <div class="comm-week cw-purple">
+          <div class="comm-week-label" style="color:#bc8cff">Tydzień 9–12 — Recommendation &amp; Go/No-Go</div>
+          <ul>
+            <li>Finalna rekomendacja dla zarządu (tyg. 12): go/no-go dla wdrożenia i use case #2</li>
+            <li>Executive summary #3 dla Prezesa (tyg. 9)</li>
+            <li>Decyzja CFO o dalszym finansowaniu (tyg. 10) — dane + ROI + plan fazy 2</li>
+            <li>Roadmap dla CIO — faza 2: kiedy i jak integracja z ERP (po zakończeniu projektu ERP)</li>
+            <li>Prezentacja wyników pilotażu dla całego zespołu sprzedaży</li>
+            <li>Plan adopcji faza 2 — z HR: program szkoleniowy, role ambasadorów AI</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4 style="margin-top:16px">Kluczowe przekazy dla każdej grupy</h4>
+      <div class="two-col" style="margin-top:8px">
+        <div>
+          <div style="background:#21262d;border-radius:8px;padding:14px 16px;margin-bottom:10px">
+            <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#e3b341;margin-bottom:8px">Dla zarządu (Prezes, COO, CFO)</div>
+            <ul style="font-size:0.82rem">
+              <li>„Zbudujemy <strong>mierzalny dowód wartości</strong> w 90 dni — nie deck, nie research, ale działający prototyp z danymi"</li>
+              <li>„ROI wyliczamy ostrożnie, z jawnymi założeniami, które CFO może kwestionować i weryfikować"</li>
+              <li>„Firmy tej samej klasy osiągają wyniki w 3–4 miesiące (C3.ai, Prohan, Freedom Furniture) — jesteśmy w benchmarku"</li>
+            </ul>
+          </div>
+          <div style="background:#21262d;border-radius:8px;padding:14px 16px">
+            <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#f78166;margin-bottom:8px">Dla IT (CIO)</div>
+            <ul style="font-size:0.82rem">
+              <li>„MVP nie dotyka ERP — zasada clean core jest nienaruszalna na etapie pilotażu"</li>
+              <li>„Potrzebujemy minimum: środowisko testowe + 2h/tydz senior architekta do review"</li>
+              <li>„Faza 2 z integracją ERP dopiero po zakończeniu bieżącego projektu ERP — bez presji"</li>
+            </ul>
+          </div>
+        </div>
+        <div>
+          <div style="background:#21262d;border-radius:8px;padding:14px 16px;margin-bottom:10px">
+            <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#39d353;margin-bottom:8px">Dla handlowców (end users)</div>
+            <ul style="font-size:0.82rem">
+              <li>„AI <strong>nie zastępuje Cię</strong> — zwalnia od przepisywania szablonów, żebyś miał czas na budowanie relacji z klientami"</li>
+              <li>„Wy decydujecie, jak narzędzie działa — Wasze warsztaty kształtują produkt, nie konsultanci"</li>
+              <li>„AI nie ocenia Twojej pracy — mierzy czas procesu, nie wydajność konkretnej osoby"</li>
+            </ul>
+          </div>
+          <div style="background:#21262d;border-radius:8px;padding:14px 16px">
+            <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#bc8cff;margin-bottom:8px">Dla wszystkich pracowników (townhall)</div>
+            <ul style="font-size:0.82rem">
+              <li>„DomoLinea buduje AI jako <strong>narzędzie dla ludzi</strong> — zgodnie z trendem europejskich liderów sektora"</li>
+              <li>„69% z Was ma obawy — rozumiemy to; dlatego projekt jest transparentny, a FAQ dostępne od tyg. 4"</li>
+              <li>„Wasze pytania mają odpowiedzi — kanał Q&amp;A i HR są gotowi odpowiedzieć na każde"</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="insight-box-red">
+        <p style="font-size:0.85rem;color:#c9d1d9">
+          <strong style="color:#f78166">Ryzyko komunikacyjne #1 — Shadow IT:</strong>
+          Jeżeli Dyrektor Sprzedaży nie zobaczy namacalnego postępu do końca tygodnia 4 (działający prototyp, nie slajdy), ryzyko powrotu do rozmów z zewnętrznym dostawcą dramatycznie wzrasta.
+          Kluczowy przekaz operacyjny: <em>„Demo w tygodniu 7 — konkretne oferty przygotowane w minutach. W zamian prosimy o wstrzymanie rozmów z zewnętrznym dostawcą przez 4 tygodnie."</em>
+          Taktyka dodatkowa: Dyrektor Sprzedaży uczestniczy w warsztacie projektowym (tyg. 3–4) i jest aktywnym recenzentem prototypu — własność zmienia perspektywę z „producent vs. dostawca" na „mój projekt".
+        </p>
       </div>
     </div>
 
